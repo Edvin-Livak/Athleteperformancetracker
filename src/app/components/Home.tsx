@@ -30,7 +30,7 @@ export function Home() {
 
         {/* Big button (full width, same height as one tile) */}
         <div className="mb-4">
-          <Link to="/journal">
+          <Link to="/videos" state={{ startCompare: true }}>
             <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-indigo-500 to-violet-600 text-white border-0">
               <CardContent className="p-6 flex flex-col items-center justify-center h-40">
                 <div className="flex items-center gap-4">

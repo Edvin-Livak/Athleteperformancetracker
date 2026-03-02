@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ArrowLeft, Calendar, Send, Trash2, User } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
@@ -25,6 +25,20 @@ interface Comment {
   timestamp: string;
 }
 
+const COACH_AUTO_REPLIES: Record<string, string[]> = {
+  "1": [
+    "Nice drive phase. Next time, focus on staying lower for 2–3 more steps.",
+    "Compare your first 10m to the other run — your foot strike is slightly ahead of your hips here.",
+  ],
+  "2": [
+    "Good rhythm mid-race. Can you mark where you feel you start tightening up?",
+  ],
+};
+
+const COACH_DEFAULT_COMMENT: Record<string, string> = {
+  "1": "Initial note: watch your head position out of the blocks — it pops up early.",
+};
+
 export function VideoDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,6 +47,17 @@ export function VideoDetail() {
   const [newComment, setNewComment] = useState("");
   const [commentAuthor, setCommentAuthor] = useState("Athlete");
   const [commentRole, setCommentRole] = useState<"athlete" | "coach">("athlete");
+
+  const replyTimeoutRef = useRef<number | null>(null);
+  const getAutoKey = (videoId: string) => `videoAutoReplyIndex:${videoId}`;
+
+  useEffect(() => {
+    return () => {
+      if (replyTimeoutRef.current) {
+        window.clearTimeout(replyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Load video
@@ -49,10 +74,27 @@ export function VideoDetail() {
     }
 
     // Load comments
+        // Load comments
     const storedComments = localStorage.getItem("videoComments");
-    if (storedComments) {
-      const allComments: Comment[] = JSON.parse(storedComments);
-      setComments(allComments.filter((c) => c.videoId === id));
+    const allComments: Comment[] = storedComments ? JSON.parse(storedComments) : [];
+    const currentVideoComments = allComments.filter((c) => c.videoId === id);
+
+    // Seed one default coach comment (only if none exist yet for this video)
+    if (id && currentVideoComments.length === 0 && COACH_DEFAULT_COMMENT[id]) {
+      const seed: Comment = {
+        id: `seed-${id}`,
+        videoId: id,
+        author: "Coach",
+        role: "coach",
+        text: COACH_DEFAULT_COMMENT[id],
+        timestamp: new Date().toISOString(),
+      };
+
+      const updatedAll = [...allComments, seed];
+      localStorage.setItem("videoComments", JSON.stringify(updatedAll));
+      setComments([seed]);
+    } else {
+      setComments(currentVideoComments);
     }
   }, [id, navigate]);
 
@@ -66,12 +108,12 @@ export function VideoDetail() {
     localStorage.setItem("videoComments", JSON.stringify([...otherComments, ...updatedComments]));
   };
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
+    const handleAddComment = () => {
+    if (!newComment.trim() || !id) return;
 
     const comment: Comment = {
       id: Date.now().toString(),
-      videoId: id!,
+      videoId: id,
       author: commentAuthor,
       role: commentRole,
       text: newComment,
@@ -81,6 +123,44 @@ export function VideoDetail() {
     const updatedComments = [...comments, comment];
     saveComments(updatedComments);
     setNewComment("");
+
+    // Auto coach reply only when user comments as athlete
+    if (commentRole === "athlete") {
+      const script = COACH_AUTO_REPLIES[id];
+      if (!script || script.length === 0) return;
+
+      const autoKey = getAutoKey(id);
+      const currentIndex = Number(localStorage.getItem(autoKey) || "0");
+
+      if (currentIndex >= script.length) return;
+
+      // clear any existing scheduled reply
+      if (replyTimeoutRef.current) {
+        window.clearTimeout(replyTimeoutRef.current);
+      }
+
+      replyTimeoutRef.current = window.setTimeout(() => {
+        const coachReply: Comment = {
+          id: `${Date.now().toString()}-coach`,
+          videoId: id,
+          author: "Coach",
+          role: "coach",
+          text: script[currentIndex],
+          timestamp: new Date().toISOString(),
+        };
+
+        // append to global storage
+        const stored = localStorage.getItem("videoComments");
+        const all: Comment[] = stored ? JSON.parse(stored) : [];
+        localStorage.setItem("videoComments", JSON.stringify([...all, coachReply]));
+
+        // append to current page state
+        setComments((prev) => [...prev, coachReply]);
+
+        // advance script index
+        localStorage.setItem(autoKey, String(currentIndex + 1));
+      }, 2500);
+    }
   };
 
   const handleDeleteComment = (commentId: string) => {

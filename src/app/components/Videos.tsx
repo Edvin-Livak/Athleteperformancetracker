@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Plus,
-  Play,
-  Trash2,
-  Calendar,
-  Video,
-} from "lucide-react";
+import { Plus, Play, Trash2, Calendar, Video, Columns2, X } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
@@ -19,7 +13,7 @@ import {
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Link } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 
 interface VideoEntry {
   id: string;
@@ -33,11 +27,27 @@ interface VideoEntry {
 export function Videos() {
   const [videos, setVideos] = useState<VideoEntry[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [compareMode, setCompareMode] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   const [newVideo, setNewVideo] = useState({
     title: "",
     description: "",
     videoUrl: "",
   });
+
+  useEffect(() => {
+    const startCompare = (location.state as any)?.startCompare;
+
+    if (startCompare) {
+      setCompareMode(true);
+      setSelected([]);
+
+      // optional: clear state so it doesn't re-trigger on back/refresh
+      navigate("/videos", { replace: true });
+    }
+  }, [location.state, navigate]);
 
   useEffect(() => {
     const stored = localStorage.getItem("athleteVideos");
@@ -53,8 +63,7 @@ export function Videos() {
           description: "12.34s (PB)",
           date: new Date("2024-05-12").toISOString(),
           thumbnailUrl: "",
-          videoUrl:
-            "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+          videoUrl: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
         },
         {
           id: "2",
@@ -62,8 +71,7 @@ export function Videos() {
           description: "12.51s",
           date: new Date("2024-06-03").toISOString(),
           thumbnailUrl: "",
-          videoUrl:
-            "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+          videoUrl: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
         },
         {
           id: "3",
@@ -71,8 +79,7 @@ export function Videos() {
           description: "25.80s",
           date: new Date("2024-04-21").toISOString(),
           thumbnailUrl: "",
-          videoUrl:
-            "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+          videoUrl: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
         },
         {
           id: "4",
@@ -80,8 +87,7 @@ export function Videos() {
           description: "Block reaction focus",
           date: new Date("2024-03-15").toISOString(),
           thumbnailUrl: "",
-          videoUrl:
-            "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+          videoUrl: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
         },
         {
           id: "5",
@@ -89,25 +95,18 @@ export function Videos() {
           description: "12.29s",
           date: new Date("2024-07-01").toISOString(),
           thumbnailUrl: "",
-          videoUrl:
-            "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+          videoUrl: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
         },
       ];
 
       setVideos(demoVideos);
-      localStorage.setItem(
-        "athleteVideos",
-        JSON.stringify(demoVideos),
-      );
+      localStorage.setItem("athleteVideos", JSON.stringify(demoVideos));
     }
   }, []);
 
   const saveVideos = (updatedVideos: VideoEntry[]) => {
     setVideos(updatedVideos);
-    localStorage.setItem(
-      "athleteVideos",
-      JSON.stringify(updatedVideos),
-    );
+    localStorage.setItem("athleteVideos", JSON.stringify(updatedVideos));
   };
 
   const handleAddVideo = () => {
@@ -131,6 +130,28 @@ export function Videos() {
     saveVideos(videos.filter((v) => v.id !== id));
   };
 
+  const toggleCompareMode = () => {
+    setCompareMode((prev) => {
+      const next = !prev;
+      if (!next) setSelected([]); // leaving compare mode clears selection
+      return next;
+    });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return prev; // limit to 2
+      return [...prev, id];
+    });
+  };
+
+  const goToCompare = () => {
+    if (selected.length !== 2) return;
+    localStorage.setItem("compareVideos", JSON.stringify(selected));
+    navigate("/compare");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-md mx-auto">
@@ -143,13 +164,24 @@ export function Videos() {
               {videos.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <Button
-            onClick={() => setIsDialogOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700"
-            size="lg"
-          >
-            <Plus size={20} />
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={toggleCompareMode}
+              variant="outline"
+              className="border-gray-200"
+              size="lg"
+            >
+              {compareMode ? <X size={20} /> : <Columns2 size={20} />}
+            </Button>
+
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="bg-purple-600 hover:bg-purple-700"
+              size="lg"
+            >
+              <Plus size={20} />
+            </Button>
+          </div>
         </div>
 
         {/* Videos Grid */}
@@ -174,20 +206,30 @@ export function Videos() {
           </Card>
         ) : (
           <div className="grid grid-cols-3 gap-3">
-            {videos.map((video) => (
-              <Link to={`/videos/${video.id}`} key={video.id}>
+            {videos.map((video) => {
+              const isSelected = selected.includes(video.id);
+
+              const Tile = (
                 <div className="group">
-                  <Card className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <Card
+                    className={`overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow ${
+                      compareMode && isSelected ? "ring-4 ring-purple-600" : ""
+                    }`}
+                  >
                     <CardContent className="p-0">
                       {/* Thumbnail */}
                       <div className="relative aspect-square bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
-                        <Play
-                          size={32}
-                          className="text-purple-600"
-                        />
+                        <Play size={32} className="text-purple-600" />
 
                         {/* subtle overlay */}
                         <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                        {/* Selected badge */}
+                        {compareMode && isSelected && (
+                          <div className="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                            Selected
+                          </div>
+                        )}
 
                         {/* Delete button overlay */}
                         <Button
@@ -195,6 +237,7 @@ export function Videos() {
                           size="sm"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             handleDelete(video.id);
                           }}
                           className="absolute top-1.5 right-1.5 h-8 w-8 p-0 rounded-full bg-white/80 hover:bg-white text-red-600 hover:text-red-700 shadow"
@@ -208,34 +251,55 @@ export function Videos() {
                         <p className="text-sm font-medium leading-snug line-clamp-1">
                           {video.title}
                         </p>
-
-                        {/* Use description as "result" for now */}
                         <p className="text-xs text-gray-600 leading-snug line-clamp-1">
-                          {video.description
-                            ? video.description
-                            : "—"}
+                          {video.description ? video.description : "—"}
                         </p>
-
                         <div className="mt-1 flex items-center text-[11px] text-gray-500">
                           <Calendar size={12} className="mr-1" />
-                          {new Date(
-                            video.date,
-                          ).toLocaleDateString()}
+                          {new Date(video.date).toLocaleDateString()}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
-              </Link>
-            ))}
+              );
+
+              // Normal mode: link to details
+              if (!compareMode) {
+                return (
+                  <Link to={`/videos/${video.id}`} key={video.id}>
+                    {Tile}
+                  </Link>
+                );
+              }
+
+              // Compare mode: click selects
+              return (
+                <div
+                  key={video.id}
+                  onClick={() => toggleSelect(video.id)}
+                  className="cursor-pointer"
+                >
+                  {Tile}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {compareMode && (
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20">
+            <Button
+              onClick={goToCompare}
+              disabled={selected.length !== 2}
+              className="bg-purple-600 hover:bg-purple-700 shadow-lg px-6"
+            >
+              Compare ({selected.length}/2)
+            </Button>
           </div>
         )}
 
         {/* Add Video Dialog */}
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-        >
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add New Video</DialogTitle>
@@ -287,16 +351,13 @@ export function Videos() {
                   }
                 />
                 <p className="text-xs text-gray-500">
-                  Note: This demo stores video URLs. In
-                  production, you'd upload actual video files.
+                  Note: This demo stores video URLs. In production, you'd upload
+                  actual video files.
                 </p>
               </div>
             </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
               <Button

@@ -6,6 +6,7 @@ import { VideoDetail } from "./components/VideoDetail";
 import { Journal } from "./components/Journal";
 import { PersonalBests } from "./components/PersonalBests";
 import { Goals } from "./components/Goals";
+import { Compare } from "./components/Compare";
 
 export const router = createBrowserRouter([
   {
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
       { path: "journal", Component: Journal },
       { path: "personal-bests", Component: PersonalBests },
       { path: "goals", Component: Goals },
+      { path: "compare", Component: Compare}
     ],
   },
 ]);

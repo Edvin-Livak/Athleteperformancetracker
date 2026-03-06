@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Target, CheckCircle2, Circle, Trash2, Calendar } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerDescription } from "./ui/drawer";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
@@ -234,16 +234,16 @@ export function Goals() {
           </div>
         )}
 
-        {/* Add Goal Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Set New Goal</DialogTitle>
-              <DialogDescription>
+        {/* Add Goal - bottom drawer */}
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent className="max-w-md mx-auto">
+            <DrawerHeader>
+              <DrawerTitle>Set New Goal</DrawerTitle>
+              <DrawerDescription>
                 Add a new goal to help you achieve your fitness objectives.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-4 px-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="goal-title">Goal</Label>
                 <Input
@@ -295,7 +295,7 @@ export function Goals() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DrawerFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
@@ -306,9 +306,9 @@ export function Goals() {
               >
                 Set Goal
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

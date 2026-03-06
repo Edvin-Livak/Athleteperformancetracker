@@ -7,7 +7,8 @@ import { Journal } from "./components/Journal";
 import { PersonalBests } from "./components/PersonalBests";
 import { Goals } from "./components/Goals";
 import { Compare } from "./components/Compare";
-
+import { Profile } from "./components/Profile.tsx";
+ 
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -19,7 +20,8 @@ export const router = createBrowserRouter([
       { path: "journal", Component: Journal },
       { path: "personal-bests", Component: PersonalBests },
       { path: "goals", Component: Goals },
-      { path: "compare", Component: Compare}
+      { path: "compare", Component: Compare},
+      { path: "profile", Component: Profile}
     ],
   },
 ]);

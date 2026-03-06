@@ -168,10 +168,13 @@ export function Videos() {
             <Button
               onClick={toggleCompareMode}
               variant="outline"
-              className="border-gray-200"
+              className={`border-gray-500 flex items-center gap-2 ${
+    compareMode ? "text-gray-700 bg-gray-200 border-gray-500" : "text-gray-700"
+  }`}
               size="lg"
             >
               {compareMode ? <X size={20} /> : <Columns2 size={20} />}
+              Compare Videos
             </Button>
 
             <Button
@@ -179,7 +182,8 @@ export function Videos() {
               className="bg-purple-600 hover:bg-purple-700"
               size="lg"
             >
-              <Plus size={20} />
+              <Plus size={20}className="mr-2" />
+            Add Entry
             </Button>
           </div>
         </div>

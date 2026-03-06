@@ -26,6 +26,8 @@ interface JournalEntry {
   conditions: string;
   improvement: string;
 
+  notes?: string;
+
   mood?: string;
 
   // Optional: store a compiled string for list preview + "Read more"
@@ -35,9 +37,7 @@ interface JournalEntry {
 export function Journal() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [expandedEntry, setExpandedEntry] = useState<
-    string | null
-  >(null);
+  const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
 
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -49,6 +49,7 @@ export function Journal() {
     wentPoorly: "",
     conditions: "",
     improvement: "",
+    notes: "",
   });
 
   useEffect(() => {
@@ -60,13 +61,15 @@ export function Journal() {
 
   const saveEntries = (updatedEntries: JournalEntry[]) => {
     setEntries(updatedEntries);
-    localStorage.setItem(
-      "athleteJournal",
-      JSON.stringify(updatedEntries),
-    );
+    localStorage.setItem("athleteJournal", JSON.stringify(updatedEntries));
   };
 
   const openNewEntry = () => {
+    resetNewEntry();
+    setIsDialogOpen(true);
+  };
+
+  const resetNewEntry = () => {
     setStep(1);
     setNewEntry({
       title: "",
@@ -76,8 +79,13 @@ export function Journal() {
       wentPoorly: "",
       conditions: "",
       improvement: "",
+      notes: "",
     });
-    setIsDialogOpen(true);
+  };
+
+  const cancelNewEntry = () => {
+    resetNewEntry();
+    setIsDialogOpen(false);
   };
 
   const handleAddEntry = () => {
@@ -98,6 +106,9 @@ export function Journal() {
       "",
       "What needs improvement?",
       newEntry.improvement || "—",
+      "",
+      "Notes:",
+      newEntry.notes || "—",
     ]
       .filter(Boolean)
       .join("\n");
@@ -114,12 +125,14 @@ export function Journal() {
       wentPoorly: newEntry.wentPoorly,
       conditions: newEntry.conditions,
       improvement: newEntry.improvement,
+      notes: newEntry.notes,
 
       content: compiled,
     };
 
     saveEntries([entry, ...entries]);
-    setIsDialogOpen(false);
+    //setIsDialogOpen(false);
+    cancelNewEntry();
   };
 
   const handleDelete = (id: string) => {
@@ -143,7 +156,8 @@ export function Journal() {
             className="bg-blue-600 hover:bg-blue-700"
             size="lg"
           >
-            <Plus size={20} />
+            <Plus size={18} className="mr-2" />
+            Add Entry
           </Button>
         </div>
 
@@ -174,14 +188,10 @@ export function Journal() {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                      <h3 className="text-lg mb-1">
-                        {entry.title}
-                      </h3>
+                      <h3 className="text-lg mb-1">{entry.title}</h3>
                       <div className="flex items-center text-xs text-gray-500 mb-2">
                         <Calendar size={14} className="mr-1" />
-                        {new Date(
-                          entry.date,
-                        ).toLocaleDateString()}
+                        {new Date(entry.date).toLocaleDateString()}
                         {entry.mood && (
                           <span className="ml-3 bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
                             {entry.mood}
@@ -198,32 +208,70 @@ export function Journal() {
                       <Trash2 size={18} />
                     </Button>
                   </div>
-                  <p
-                    className={`text-gray-700 ${
-                      expandedEntry === entry.id
-                        ? ""
-                        : "line-clamp-3"
-                    }`}
+                  <div
+                    className={`text-gray-700 ${expandedEntry === entry.id ? "" : "line-clamp-6"}`}
                   >
-                    {entry.content}
-                  </p>
-                  {entry.content.length > 150 && (
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto text-blue-600 mt-2"
-                      onClick={() =>
-                        setExpandedEntry(
-                          expandedEntry === entry.id
-                            ? null
-                            : entry.id,
-                        )
-                      }
-                    >
-                      {expandedEntry === entry.id
-                        ? "Show less"
-                        : "Read more"}
-                    </Button>
-                  )}
+                    {/* Result + Mood */}
+                    <div className="mb-3">
+                      <div className="text-sm">
+                        <span className="font-semibold">Result:</span>{" "}
+                        <span>{entry.result || "—"}</span>
+                      </div>
+                      {entry.mood && (
+                        <div className="text-sm">
+                          <span className="font-semibold">Mood:</span>{" "}
+                          <span>{entry.mood}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Guided questions */}
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <div className="font-semibold">What went well?</div>
+                        <div className="text-gray-700 whitespace-pre-wrap">
+                          {entry.wentWell || "—"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="font-semibold">What went poorly?</div>
+                        <div className="text-gray-700 whitespace-pre-wrap">
+                          {entry.wentPoorly || "—"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="font-semibold">
+                          Were the conditions optimal?
+                        </div>
+                        <div className="text-gray-700 whitespace-pre-wrap">
+                          {entry.conditions || "—"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="font-semibold">
+                          What needs improvement?
+                        </div>
+                        <div className="text-gray-700 whitespace-pre-wrap">
+                          {entry.improvement || "—"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto text-blue-600 mt-2"
+                    onClick={() =>
+                      setExpandedEntry(
+                        expandedEntry === entry.id ? null : entry.id,
+                      )
+                    }
+                  >
+                    {expandedEntry === entry.id ? "Show less" : "Read more"}
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -231,10 +279,7 @@ export function Journal() {
         )}
 
         {/* Add Entry Dialog */}
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-        >
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
@@ -259,9 +304,7 @@ export function Journal() {
               {step === 1 ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="entry-title">
-                      Event / Title
-                    </Label>
+                    <Label htmlFor="entry-title">Event / Title</Label>
                     <Input
                       id="entry-title"
                       placeholder="e.g., 100m Heat at Districts"
@@ -292,9 +335,7 @@ export function Journal() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="mood">
-                      Mood (optional)
-                    </Label>
+                    <Label htmlFor="mood">Mood (optional)</Label>
                     <Input
                       id="mood"
                       placeholder="e.g., Nervous, Focused"
@@ -311,9 +352,7 @@ export function Journal() {
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="wentWell">
-                      What went well?
-                    </Label>
+                    <Label htmlFor="wentWell">What went well?</Label>
                     <Textarea
                       id="wentWell"
                       placeholder="What should you repeat next time?"
@@ -329,9 +368,7 @@ export function Journal() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="wentPoorly">
-                      What went poorly?
-                    </Label>
+                    <Label htmlFor="wentPoorly">What went poorly?</Label>
                     <Textarea
                       id="wentPoorly"
                       placeholder="What got in the way?"
@@ -365,9 +402,7 @@ export function Journal() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="improvement">
-                      What needs improvement?
-                    </Label>
+                    <Label htmlFor="improvement">What needs improvement?</Label>
                     <Textarea
                       id="improvement"
                       placeholder="One or two concrete actions for next time."
@@ -381,23 +416,34 @@ export function Journal() {
                       rows={3}
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes (optional)</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Anything else you want to remember?"
+                      value={newEntry.notes}
+                      onChange={(e) =>
+                        setNewEntry({
+                          ...newEntry,
+                          notes: e.target.value,
+                        })
+                      }
+                      rows={3}
+                    />
+                  </div>
                 </>
               )}
             </div>
             <DialogFooter className="flex items-center justify-between">
               {step === 1 ? (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
+                  <Button variant="outline" onClick={() => cancelNewEntry()}>
                     Cancel
                   </Button>
                   <Button
                     onClick={() => setStep(2)}
-                    disabled={
-                      !newEntry.title || !newEntry.result
-                    }
+                    disabled={!newEntry.title || !newEntry.result}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     Next
@@ -405,10 +451,7 @@ export function Journal() {
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(1)}
-                  >
+                  <Button variant="outline" onClick={() => setStep(1)}>
                     Back
                   </Button>
                   <Button

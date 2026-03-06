@@ -3,82 +3,81 @@ import { Home, Video, BookOpen, Trophy, Target } from "lucide-react";
 
 export function Root() {
   const location = useLocation();
-  
+
   const isActive = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/';
-    }
+    if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pb-20">
+    <div className="flex flex-col h-screen bg-background">
+      <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-inset-bottom">
-        <div className="flex justify-around items-center max-w-md mx-auto">
-          <Link 
-            to="/videos" 
-            className={`flex flex-col items-center gap-1 py-2 px-3 rounded-lg transition-colors ${
-              isActive('/videos') 
-                ? 'text-blue-600' 
-                : 'text-gray-600 hover:text-gray-900'
+      <nav
+        className="fixed left-4 right-4 max-w-md mx-auto bg-[#1A1A1A] rounded-full shadow-xl border border-[#2A2A2A]"
+        style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}
+      >
+        <div className="flex justify-between items-center p-3">
+          <Link
+            to="/videos"
+            className={`flex items-center justify-center rounded-full transition-colors shrink-0 ${
+              isActive("/videos")
+                ? "bg-white text-[#1A1A1A] size-10"
+                : "text-white/90 hover:text-white size-10"
             }`}
+            aria-label="Videos"
           >
-            <Video size={24} />
-            <span className="text-xs">Videos</span>
+            <Video size={24} strokeWidth={1.8} />
           </Link>
-          
-          <Link 
-            to="/journal" 
-            className={`flex flex-col items-center gap-1 py-2 px-3 rounded-lg transition-colors ${
-              isActive('/journal') 
-                ? 'text-blue-600' 
-                : 'text-gray-600 hover:text-gray-900'
+
+          <Link
+            to="/journal"
+            className={`flex items-center justify-center rounded-full transition-colors shrink-0 ${
+              isActive("/journal")
+                ? "bg-white text-[#1A1A1A] size-10"
+                : "text-white/90 hover:text-white size-10"
             }`}
+            aria-label="Journal"
           >
-            <BookOpen size={24} />
-            <span className="text-xs">Journal</span>
+            <BookOpen size={24} strokeWidth={1.8} />
           </Link>
-          
-          <Link 
-            to="/" 
-            className={`flex flex-col items-center gap-1 py-2 px-3 rounded-lg transition-colors ${
-              isActive('/') 
-                ? 'text-blue-600' 
-                : 'text-gray-600 hover:text-gray-900'
+
+          <Link
+            to="/"
+            className={`flex items-center justify-center rounded-full transition-colors shrink-0 ${
+              isActive("/")
+                ? "bg-white text-[#1A1A1A] size-10"
+                : "text-white/90 hover:text-white size-10"
             }`}
+            aria-label="Home"
           >
-            <Home size={24} />
-            <span className="text-xs">Home</span>
+            <Home size={24} strokeWidth={1.8} />
           </Link>
-          
-          <Link 
-            to="/personal-bests" 
-            className={`flex flex-col items-center gap-1 py-2 px-3 rounded-lg transition-colors ${
-              isActive('/personal-bests') 
-                ? 'text-blue-600' 
-                : 'text-gray-600 hover:text-gray-900'
+
+          <Link
+            to="/personal-bests"
+            className={`flex items-center justify-center rounded-full transition-colors shrink-0 ${
+              isActive("/personal-bests")
+                ? "bg-white text-[#1A1A1A] size-10"
+                : "text-white/90 hover:text-white size-10"
             }`}
+            aria-label="Personal bests"
           >
-            <Trophy size={24} />
-            <span className="text-xs">Best</span>
+            <Trophy size={24} strokeWidth={1.8} />
           </Link>
-          
-          <Link 
-            to="/goals" 
-            className={`flex flex-col items-center gap-1 py-2 px-3 rounded-lg transition-colors ${
-              isActive('/goals') 
-                ? 'text-blue-600' 
-                : 'text-gray-600 hover:text-gray-900'
+
+          <Link
+            to="/goals"
+            className={`flex items-center justify-center rounded-full transition-colors shrink-0 ${
+              isActive("/goals")
+                ? "bg-white text-[#1A1A1A] size-10"
+                : "text-white/90 hover:text-white size-10"
             }`}
+            aria-label="Goals"
           >
-            <Target size={24} />
-            <span className="text-xs">Goals</span>
+            <Target size={24} strokeWidth={1.8} />
           </Link>
         </div>
       </nav>

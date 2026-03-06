@@ -90,28 +90,26 @@ export function VideoDetail() {
 
   if (!video) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="bg-white border-b sticky top-0 z-10">
+        <div className="bg-card border-b border-border sticky top-0 z-10 shadow-sm">
           <div className="flex items-center gap-3 p-4">
             <Link to="/videos">
-              <Button variant="ghost" size="sm" className="h-10 w-10 p-0">
-                <ArrowLeft size={20} />
+              <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-xl">
+                <ArrowLeft size={20} strokeWidth={1.8} />
               </Button>
             </Link>
-            <h1 className="text-xl">Video Details</h1>
+            <h1 className="text-lg font-semibold text-foreground">Video details</h1>
           </div>
         </div>
 
-        {/* Video Player */}
         <div className="bg-black">
           <video
             src={video.videoUrl}
@@ -121,31 +119,28 @@ export function VideoDetail() {
           />
         </div>
 
-        {/* Video Info */}
-        <div className="bg-white p-4 border-b">
-          <h2 className="text-2xl mb-2">{video.title}</h2>
-          <div className="flex items-center text-sm text-gray-500 mb-3">
-            <Calendar size={14} className="mr-1" />
+        <div className="bg-card border-b border-border p-4 shadow-sm">
+          <h2 className="text-xl font-semibold text-foreground mb-2">{video.title}</h2>
+          <div className="flex items-center text-sm text-muted-foreground mb-2">
+            <Calendar size={14} className="mr-1.5" strokeWidth={1.6} />
             {new Date(video.date).toLocaleDateString()}
           </div>
           {video.description && (
-            <p className="text-gray-700">{video.description}</p>
+            <p className="text-muted-foreground text-sm">{video.description}</p>
           )}
         </div>
 
-        {/* Comments Section */}
-        <div className="p-4">
-          <h3 className="text-lg mb-4">
+        <div className="p-4 pb-28">
+          <h3 className="text-base font-semibold text-foreground mb-3">
             Comments ({comments.length})
           </h3>
 
-          {/* Add Comment */}
-          <Card className="mb-6">
+          <Card className="mb-5 border border-border rounded-xl shadow-sm">
             <CardContent className="p-4">
               <div className="space-y-3">
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <Label htmlFor="author" className="text-xs text-gray-600">
+                    <Label htmlFor="author" className="text-xs text-muted-foreground">
                       Your Name
                     </Label>
                     <Input
@@ -157,7 +152,7 @@ export function VideoDetail() {
                     />
                   </div>
                   <div className="w-32">
-                    <Label htmlFor="role" className="text-xs text-gray-600">
+                    <Label htmlFor="role" className="text-xs text-muted-foreground">
                       Role
                     </Label>
                     <select
@@ -166,7 +161,7 @@ export function VideoDetail() {
                       onChange={(e) =>
                         setCommentRole(e.target.value as "athlete" | "coach")
                       }
-                      className="mt-1 w-full h-10 px-3 border border-gray-300 rounded-md bg-white text-sm"
+                      className="mt-1 w-full h-10 px-3 border border-border rounded-xl bg-input-background text-sm text-foreground"
                     >
                       <option value="athlete">Athlete</option>
                       <option value="coach">Coach</option>
@@ -187,16 +182,16 @@ export function VideoDetail() {
                   />
                 </div>
                 <div className="flex justify-between items-center">
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Tip: Press Cmd/Ctrl + Enter to send
                   </p>
                   <Button
                     onClick={handleAddComment}
                     disabled={!newComment.trim()}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="rounded-xl"
                     size="sm"
                   >
-                    <Send size={16} className="mr-2" />
+                    <Send size={16} className="mr-2" strokeWidth={1.6} />
                     Comment
                   </Button>
                 </div>
@@ -206,58 +201,53 @@ export function VideoDetail() {
 
           {/* Comments List */}
           {comments.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p>No comments yet. Be the first to comment!</p>
+            <div className="text-center py-10 px-4 rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground text-sm">
+              <p>No comments yet. Be the first to share your thoughts.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {comments.map((comment) => (
-                <Card key={comment.id}>
-                  <CardContent className="p-4">
+                <Card key={comment.id} className="border border-border rounded-xl shadow-sm hover:shadow-md hover:border-primary/20 transition-all">
+                  <CardContent className="p-3">
                     <div className="flex gap-3">
-                      {/* Avatar */}
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                           comment.role === "coach"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-purple-100 text-purple-700"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-primary/10 text-primary"
                         }`}
                       >
-                        <User size={20} />
+                        <User size={20} strokeWidth={1.6} />
                       </div>
-
-                      {/* Comment Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-semibold text-sm text-foreground">
                             {comment.author}
                           </span>
                           <span
-                            className={`text-xs px-2 py-0.5 rounded ${
+                            className={`text-xs font-medium px-2 py-0.5 rounded-md ${
                               comment.role === "coach"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-purple-100 text-purple-700"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-primary/10 text-primary"
                             }`}
                           >
                             {comment.role}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-muted-foreground">
                             {new Date(comment.timestamp).toLocaleString()}
                           </span>
                         </div>
-                        <p className="text-gray-700 whitespace-pre-wrap break-words">
+                        <p className="text-muted-foreground text-sm whitespace-pre-wrap break-words leading-relaxed">
                           {comment.text}
                         </p>
                       </div>
-
-                      {/* Delete Button */}
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteComment(comment.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 flex-shrink-0"
+                        className="text-destructive hover:bg-destructive/10 h-8 w-8 p-0 flex-shrink-0 rounded-xl"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} strokeWidth={1.6} />
                       </Button>
                     </div>
                   </CardContent>

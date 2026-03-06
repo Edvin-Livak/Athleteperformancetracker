@@ -3,13 +3,13 @@ import { Plus, Calendar, Trash2, BookOpen } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "./ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerDescription,
+} from "./ui/drawer";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
@@ -127,63 +127,53 @@ export function Journal() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-5 pb-28">
       <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 pt-6">
+        <div className="flex justify-between items-center mb-5 pt-4">
           <div>
-            <h1 className="text-3xl mb-1">Journal</h1>
-            <p className="text-gray-600">
-              {entries.length} entr
-              {entries.length !== 1 ? "ies" : "y"}
+            <h1 className="text-xl font-semibold text-foreground mb-0.5">Journal</h1>
+            <p className="text-muted-foreground text-sm">
+              {entries.length} entr{entries.length !== 1 ? "ies" : "y"}
             </p>
           </div>
-          <Button
-            onClick={() => setIsDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-            size="lg"
-          >
-            <Plus size={20} />
+          <Button onClick={() => setIsDialogOpen(true)} size="lg" className="rounded-xl">
+            <Plus size={20} strokeWidth={1.8} />
           </Button>
         </div>
 
-        {/* Entries List */}
         {entries.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen size={32} className="text-blue-600" />
+          <Card className="border border-border rounded-2xl shadow-md">
+            <CardContent className="p-10 text-center">
+              <div className="bg-primary/10 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <BookOpen size={32} className="text-primary" strokeWidth={1.6} />
               </div>
-              <h3 className="text-lg mb-2">Start Reflection</h3>
-              <p className="text-gray-600 mb-4">
-                Start documenting your journey
+              <h3 className="text-lg font-semibold text-foreground mb-2">Start reflecting</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Document your performances and how you felt
               </p>
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus size={20} className="mr-2" />
-                New Entry
+              <Button onClick={() => setIsDialogOpen(true)} className="rounded-xl">
+                <Plus size={18} className="mr-2" strokeWidth={1.8} />
+                New entry
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {entries.map((entry) => (
-              <Card key={entry.id} className="overflow-hidden">
+              <Card key={entry.id} className="overflow-hidden border border-border rounded-xl shadow-sm hover:shadow-md hover:border-primary/20 transition-all">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                      <h3 className="text-lg mb-1">
+                      <h3 className="text-base font-semibold text-foreground mb-1">
                         {entry.title}
                       </h3>
-                      <div className="flex items-center text-xs text-gray-500 mb-2">
-                        <Calendar size={14} className="mr-1" />
-                        {new Date(
-                          entry.date,
-                        ).toLocaleDateString()}
+                      <div className="flex items-center text-xs text-muted-foreground mb-2 flex-wrap gap-x-2 gap-y-1">
+                        <span className="flex items-center gap-1">
+                          <Calendar size={12} strokeWidth={1.6} />
+                          {new Date(entry.date).toLocaleDateString()}
+                        </span>
                         {entry.mood && (
-                          <span className="ml-3 bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                          <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs font-medium">
                             {entry.mood}
                           </span>
                         )}
@@ -193,16 +183,14 @@ export function Journal() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(entry.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-destructive hover:bg-destructive/10 rounded-lg h-8 w-8 p-0"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={18} strokeWidth={1.6} />
                     </Button>
                   </div>
                   <p
-                    className={`text-gray-700 ${
-                      expandedEntry === entry.id
-                        ? ""
-                        : "line-clamp-3"
+                    className={`text-muted-foreground text-sm leading-relaxed ${
+                      expandedEntry === entry.id ? "" : "line-clamp-3"
                     }`}
                   >
                     {entry.content}
@@ -210,18 +198,12 @@ export function Journal() {
                   {entry.content.length > 150 && (
                     <Button
                       variant="link"
-                      className="p-0 h-auto text-blue-600 mt-2"
+                      className="p-0 h-auto text-primary mt-2 font-medium text-sm"
                       onClick={() =>
-                        setExpandedEntry(
-                          expandedEntry === entry.id
-                            ? null
-                            : entry.id,
-                        )
+                        setExpandedEntry(expandedEntry === entry.id ? null : entry.id)
                       }
                     >
-                      {expandedEntry === entry.id
-                        ? "Show less"
-                        : "Read more"}
+                      {expandedEntry === entry.id ? "Show less" : "Read more"}
                     </Button>
                   )}
                 </CardContent>
@@ -230,32 +212,29 @@ export function Journal() {
           </div>
         )}
 
-        {/* Add Entry Dialog */}
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-        >
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
+        {/* Add Entry - bottom drawer */}
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent className="max-w-md mx-auto">
+            <DrawerHeader>
+              <DrawerTitle>
                 {step === 1 ? "New Entry" : "Reflection"}
-              </DialogTitle>
+              </DrawerTitle>
               {/* Progress indicator */}
               <div className="mt-2 flex gap-2">
                 <div
-                  className={`h-1 flex-1 rounded ${step === 1 ? "bg-blue-600" : "bg-blue-200"}`}
+                  className={`h-1 flex-1 rounded-full ${step === 1 ? "bg-primary" : "bg-primary/20"}`}
                 />
                 <div
-                  className={`h-1 flex-1 rounded ${step === 2 ? "bg-blue-600" : "bg-blue-200"}`}
+                  className={`h-1 flex-1 rounded-full ${step === 2 ? "bg-primary" : "bg-primary/20"}`}
                 />
               </div>
-              <DialogDescription>
+              <DrawerDescription>
                 {step === 1
                   ? "Enter the details of your event."
                   : "Reflect on your performance."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-4 px-4 pb-4">
               {step === 1 ? (
                 <>
                   <div className="space-y-2">
@@ -384,21 +363,20 @@ export function Journal() {
                 </>
               )}
             </div>
-            <DialogFooter className="flex items-center justify-between">
+            <DrawerFooter className="flex flex-row items-center gap-3">
               {step === 1 ? (
                 <>
                   <Button
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
+                    className="flex-1"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={() => setStep(2)}
-                    disabled={
-                      !newEntry.title || !newEntry.result
-                    }
-                    className="bg-blue-600 hover:bg-blue-700"
+                    disabled={!newEntry.title || !newEntry.result}
+                    className="flex-1 rounded-xl"
                   >
                     Next
                   </Button>
@@ -408,20 +386,18 @@ export function Journal() {
                   <Button
                     variant="outline"
                     onClick={() => setStep(1)}
+                    className="flex-1"
                   >
                     Back
                   </Button>
-                  <Button
-                    onClick={handleAddEntry}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Save Entry
+                  <Button onClick={handleAddEntry} className="flex-1 rounded-xl">
+                    Save entry
                   </Button>
                 </>
               )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

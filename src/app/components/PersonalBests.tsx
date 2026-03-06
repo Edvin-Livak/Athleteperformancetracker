@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Plus, Trophy, Trash2 } from "lucide-react";
+import { Plus, Trophy, Trash2, Pencil, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
@@ -40,11 +40,64 @@ interface VideoEntry {
   videoUrl: string;
 }
 
+function parseResultToNumber(result: string, unit: string): number | null {
+  const value = result.trim();
+
+  if (unit === "mm:ss") {
+    const parts = value.split(":");
+    if (parts.length !== 2) return null;
+    const minutes = Number(parts[0]);
+    const seconds = Number(parts[1]);
+    if (Number.isNaN(minutes) || Number.isNaN(seconds)) return null;
+    return minutes * 60 + seconds;
+  }
+
+  if (unit === "hh:mm:ss") {
+    const parts = value.split(":");
+    if (parts.length !== 3) return null;
+    const hours = Number(parts[0]);
+    const minutes = Number(parts[1]);
+    const seconds = Number(parts[2]);
+    if (
+      Number.isNaN(hours) ||
+      Number.isNaN(minutes) ||
+      Number.isNaN(seconds)
+    ) {
+      return null;
+    }
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  const numeric = Number(value);
+  return Number.isNaN(numeric) ? null : numeric;
+}
+
+function formatValueForUnit(value: number, unit: string): string {
+  if (unit === "mm:ss") {
+    const minutes = Math.floor(value / 60);
+    const seconds = Math.round(value % 60);
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  if (unit === "hh:mm:ss") {
+    const hours = Math.floor(value / 3600);
+    const minutes = Math.floor((value % 3600) / 60);
+    const seconds = Math.round(value % 60);
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(2);
+}
+
 export function PersonalBests() {
   const [bests, setBests] = useState<PersonalBest[]>([]);
   const [videos, setVideos] = useState<VideoEntry[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [isProgressOpen, setIsProgressOpen] = useState(false);
 
   const [newBest, setNewBest] = useState({
     event: "",
@@ -95,29 +148,30 @@ export function PersonalBests() {
     setIsDialogOpen(true);
   };
 
+  const openProgressDialog = (eventName: string) => {
+    setSelectedEvent(eventName);
+    setIsProgressOpen(true);
+  };
+
   const handleSaveBest = () => {
     if (!newBest.event || !newBest.result) return;
 
     if (editingId) {
-      const updated = bests.map((b) =>
-        b.id === editingId
-          ? {
-              ...b,
-              event: newBest.event,
-              result: newBest.result,
-              unit: newBest.unit,
-              notes: newBest.notes,
-              linkedVideoId: newBest.linkedVideoId || undefined,
-              date: new Date().toISOString(),
-            }
-          : b,
-      );
+  const best: PersonalBest = {
+    id: Date.now().toString(),
+    event: newBest.event,
+    result: newBest.result,
+    unit: newBest.unit,
+    date: new Date().toISOString(),
+    notes: newBest.notes,
+    linkedVideoId: newBest.linkedVideoId || undefined,
+  };
 
-      saveBests(updated);
-      setIsDialogOpen(false);
-      setEditingId(null);
-      return;
-    }
+  saveBests([best, ...bests]);
+  setIsDialogOpen(false);
+  setEditingId(null);
+  return;
+}
 
     const best: PersonalBest = {
       id: Date.now().toString(),
@@ -151,10 +205,94 @@ export function PersonalBests() {
               ? "e.g., 180"
               : "e.g., 10";
 
+  const groupedBests = bests.reduce(
+    (acc, best) => {
+      if (!acc[best.event]) {
+        acc[best.event] = [];
+      }
+      acc[best.event].push(best);
+      return acc;
+    },
+    {} as Record<string, PersonalBest[]>,
+  );
+
+  const selectedEntries = selectedEvent
+    ? [...(groupedBests[selectedEvent] || [])].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      )
+    : [];
+
+  const chartUnit = selectedEntries[0]?.unit || "";
+  const parsedPoints = selectedEntries
+    .map((entry, index) => ({
+      index,
+      entry,
+      value: parseResultToNumber(entry.result, entry.unit),
+    }))
+    .filter(
+      (
+        point,
+      ): point is {
+        index: number;
+        entry: PersonalBest;
+        value: number;
+      } => point.value !== null,
+    );
+
+  const chartWidth = 300;
+  const chartHeight = 180;
+  const padding = 28;
+
+  let pointsString = "";
+  let yMinLabel = "";
+  let yMaxLabel = "";
+
+  if (parsedPoints.length > 0) {
+    const values = parsedPoints.map((p) => p.value);
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+
+    if (min === max) {
+      min = min - 1;
+      max = max + 1;
+    } else {
+      const range = max - min;
+      const extra = range * 0.15;
+      min = min - extra;
+      max = max + extra;
+    }
+
+    yMinLabel = formatValueForUnit(min, chartUnit);
+    yMaxLabel = formatValueForUnit(max, chartUnit);
+
+    pointsString = parsedPoints
+      .map((point, i) => {
+        const x =
+          parsedPoints.length === 1
+            ? chartWidth / 2
+            : padding +
+              (i * (chartWidth - padding * 2)) / (parsedPoints.length - 1);
+
+        const y =
+          chartHeight -
+          padding -
+          ((point.value - min) / (max - min)) * (chartHeight - padding * 2);
+
+        return `${x},${y}`;
+      })
+      .join(" ");
+  }
+
+  const latestEntry =
+    selectedEntries.length > 0
+      ? selectedEntries[selectedEntries.length - 1]
+      : null;
+
+  const firstEntry = selectedEntries.length > 0 ? selectedEntries[0] : null;
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-md mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6 pt-6">
           <div>
             <h1 className="text-3xl mb-1">Personal Bests</h1>
@@ -167,12 +305,11 @@ export function PersonalBests() {
             className="bg-orange-600 hover:bg-orange-700"
             size="lg"
           >
-            <Plus size={20} className="mr-2" />
-            Add Entry
+            <Plus size={18} className="mr-2" />
+            Add Record
           </Button>
         </div>
 
-        {/* Bests List */}
         {bests.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
@@ -201,7 +338,7 @@ export function PersonalBests() {
                 <Card
                   key={record.id}
                   className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => openEditDialog(record)}
+                  onClick={() => openProgressDialog(record.event)}
                 >
                   <CardContent className="p-3">
                     <div className="flex items-center gap-3">
@@ -243,17 +380,31 @@ export function PersonalBests() {
                         )}
                       </div>
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(record.id);
-                        }}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0 h-8 w-8 p-0"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditDialog(record);
+                          }}
+                          className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 flex-shrink-0 h-8 w-8 p-0"
+                        >
+                          <Pencil size={16} /> Update
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(record.id);
+                          }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0 h-8 w-8 p-0"
+                        >
+                          <Trash2 size={16} /> 
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -262,7 +413,6 @@ export function PersonalBests() {
           </div>
         )}
 
-        {/* Add / Edit Best Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -376,6 +526,228 @@ export function PersonalBests() {
                 className="bg-orange-600 hover:bg-orange-700"
               >
                 {editingId ? "Save Changes" : "Add Record"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isProgressOpen} onOpenChange={setIsProgressOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{selectedEvent || "Progress"}</DialogTitle>
+              <DialogDescription>
+                Track how your results have changed over time.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedEntries.length === 0 ? (
+              <div className="py-6 text-sm text-gray-500">
+                No data available for this event yet.
+              </div>
+            ) : (
+              <div className="space-y-4 py-2">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp size={18} className="text-orange-600" />
+                      <h3 className="text-sm font-semibold">
+                        Performance Trend
+                      </h3>
+                    </div>
+
+                    <div className="w-full overflow-hidden">
+                      <svg
+                        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                        className="w-full h-52"
+                      >
+                        <line
+                          x1={padding}
+                          y1={padding}
+                          x2={padding}
+                          y2={chartHeight - padding}
+                          stroke="#d1d5db"
+                          strokeWidth="1"
+                        />
+                        <line
+                          x1={padding}
+                          y1={chartHeight - padding}
+                          x2={chartWidth - padding}
+                          y2={chartHeight - padding}
+                          stroke="#d1d5db"
+                          strokeWidth="1"
+                        />
+
+                        {pointsString && (
+                          <polyline
+                            fill="none"
+                            stroke="#ea580c"
+                            strokeWidth="3"
+                            points={pointsString}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        )}
+
+                        {parsedPoints.map((point, i) => {
+                          const values = parsedPoints.map((p) => p.value);
+                          let min = Math.min(...values);
+                          let max = Math.max(...values);
+
+                          if (min === max) {
+                            min = min - 1;
+                            max = max + 1;
+                          } else {
+                            const range = max - min;
+                            const extra = range * 0.15;
+                            min = min - extra;
+                            max = max + extra;
+                          }
+
+                          const x =
+                            parsedPoints.length === 1
+                              ? chartWidth / 2
+                              : padding +
+                                (i * (chartWidth - padding * 2)) /
+                                  (parsedPoints.length - 1);
+
+                          const y =
+                            chartHeight -
+                            padding -
+                            ((point.value - min) / (max - min)) *
+                              (chartHeight - padding * 2);
+
+                          return (
+                            <circle
+                              key={point.entry.id}
+                              cx={x}
+                              cy={y}
+                              r="4"
+                              fill="#ea580c"
+                            />
+                          );
+                        })}
+
+                        <text
+                          x={padding - 4}
+                          y={padding + 4}
+                          textAnchor="end"
+                          fontSize="10"
+                          fill="#6b7280"
+                        >
+                          {yMaxLabel}
+                        </text>
+
+                        <text
+                          x={padding - 4}
+                          y={chartHeight - padding + 4}
+                          textAnchor="end"
+                          fontSize="10"
+                          fill="#6b7280"
+                        >
+                          {yMinLabel}
+                        </text>
+
+                        <text
+                          x={padding}
+                          y={chartHeight - 8}
+                          textAnchor="start"
+                          fontSize="10"
+                          fill="#6b7280"
+                        >
+                          0
+                        </text>
+
+                        <text
+                          x={chartWidth - padding}
+                          y={chartHeight - 8}
+                          textAnchor="end"
+                          fontSize="10"
+                          fill="#6b7280"
+                        >
+                          {selectedEntries.length - 1}
+                        </text>
+                      </svg>
+                    </div>
+
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>
+                        First:{" "}
+                        {firstEntry
+                          ? new Date(firstEntry.date).toLocaleDateString()
+                          : "—"}
+                      </span>
+                      <span>
+                        Latest:{" "}
+                        {latestEntry
+                          ? new Date(latestEntry.date).toLocaleDateString()
+                          : "—"}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4 space-y-2">
+                    <h3 className="text-sm font-semibold">Summary</h3>
+                    <div className="text-sm text-gray-700">
+                      <p>
+                        <span className="font-medium">First entry:</span>{" "}
+                        {firstEntry
+                          ? `${firstEntry.result} ${firstEntry.unit}`
+                          : "—"}
+                      </p>
+                      <p>
+                        <span className="font-medium">Latest entry:</span>{" "}
+                        {latestEntry
+                          ? `${latestEntry.result} ${latestEntry.unit}`
+                          : "—"}
+                      </p>
+                      <p>
+                        <span className="font-medium">Total entries:</span>{" "}
+                        {selectedEntries.length}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="text-sm font-semibold mb-3">History</h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {selectedEntries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center justify-between text-sm border-b last:border-b-0 pb-2 last:pb-0"
+                        >
+                          <div>
+                            <p className="font-medium">
+                              {entry.result} {entry.unit}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(entry.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                          {entry.linkedVideoId && (
+                            <Link to={`/videos/${entry.linkedVideoId}`}>
+                              <p className="text-xs text-blue-600 hover:underline">
+                                Open video
+                              </p>
+                            </Link>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsProgressOpen(false)}
+              >
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>

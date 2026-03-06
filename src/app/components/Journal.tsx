@@ -3,13 +3,13 @@ import { Plus, Calendar, Trash2, BookOpen } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "./ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerDescription,
+} from "./ui/drawer";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
@@ -230,16 +230,13 @@ export function Journal() {
           </div>
         )}
 
-        {/* Add Entry Dialog */}
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-        >
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
+        {/* Add Entry - bottom drawer */}
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent className="max-w-md mx-auto">
+            <DrawerHeader>
+              <DrawerTitle>
                 {step === 1 ? "New Entry" : "Reflection"}
-              </DialogTitle>
+              </DrawerTitle>
               {/* Progress indicator */}
               <div className="mt-2 flex gap-2">
                 <div
@@ -249,13 +246,13 @@ export function Journal() {
                   className={`h-1 flex-1 rounded ${step === 2 ? "bg-blue-600" : "bg-blue-200"}`}
                 />
               </div>
-              <DialogDescription>
+              <DrawerDescription>
                 {step === 1
                   ? "Enter the details of your event."
                   : "Reflect on your performance."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-4 px-4 pb-4">
               {step === 1 ? (
                 <>
                   <div className="space-y-2">
@@ -384,12 +381,13 @@ export function Journal() {
                 </>
               )}
             </div>
-            <DialogFooter className="flex items-center justify-between">
+            <DrawerFooter className="flex flex-row items-center gap-3">
               {step === 1 ? (
                 <>
                   <Button
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
+                    className="flex-1"
                   >
                     Cancel
                   </Button>
@@ -398,7 +396,7 @@ export function Journal() {
                     disabled={
                       !newEntry.title || !newEntry.result
                     }
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
                   >
                     Next
                   </Button>
@@ -408,20 +406,21 @@ export function Journal() {
                   <Button
                     variant="outline"
                     onClick={() => setStep(1)}
+                    className="flex-1"
                   >
                     Back
                   </Button>
                   <Button
                     onClick={handleAddEntry}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
                   >
                     Save Entry
                   </Button>
                 </>
               )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

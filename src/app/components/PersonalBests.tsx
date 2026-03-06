@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trophy, TrendingUp, Calendar, Trash2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerDescription } from "./ui/drawer";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -142,14 +142,14 @@ export function PersonalBests() {
           </div>
         )}
 
-        {/* Add Best Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add Personal Best</DialogTitle>
-              <DialogDescription>Enter your personal best details below.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+        {/* Add Best - bottom drawer */}
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent className="max-w-md mx-auto">
+            <DrawerHeader>
+              <DrawerTitle>Add Personal Best</DrawerTitle>
+              <DrawerDescription>Enter your personal best details below.</DrawerDescription>
+            </DrawerHeader>
+            <div className="space-y-4 px-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="event">Event</Label>
                 <Input
@@ -199,7 +199,7 @@ export function PersonalBests() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DrawerFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
@@ -210,9 +210,9 @@ export function PersonalBests() {
               >
                 Add Record
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

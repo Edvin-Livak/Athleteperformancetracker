@@ -82,42 +82,36 @@ export function Goals() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      performance: "bg-green-100 text-green-700",
-      fitness: "bg-blue-100 text-blue-700",
-      skill: "bg-purple-100 text-purple-700",
-      nutrition: "bg-orange-100 text-orange-700",
-      other: "bg-gray-100 text-gray-700",
+      performance: "bg-primary/10 text-primary",
+      fitness: "bg-primary/10 text-primary",
+      skill: "bg-primary/10 text-primary",
+      nutrition: "bg-primary/10 text-primary",
+      other: "bg-muted text-muted-foreground",
     };
     return colors[category] || colors.other;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-5 pb-28">
       <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 pt-6">
+        <div className="flex justify-between items-center mb-5 pt-4">
           <div>
-            <h1 className="text-3xl mb-1">Goals</h1>
-            <p className="text-gray-600">
+            <h1 className="text-xl font-semibold text-foreground mb-0.5">Goals</h1>
+            <p className="text-muted-foreground text-sm">
               {activeCount} active · {completedCount} completed
             </p>
           </div>
-          <Button
-            onClick={() => setIsDialogOpen(true)}
-            className="bg-green-600 hover:bg-green-700"
-            size="lg"
-          >
-            <Plus size={20} />
+          <Button onClick={() => setIsDialogOpen(true)} size="lg" className="rounded-xl">
+            <Plus size={20} strokeWidth={1.8} />
           </Button>
         </div>
 
-        {/* Filter Tabs */}
         <div className="flex gap-2 mb-6">
           <Button
             variant={filter === "all" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("all")}
-            className={filter === "all" ? "bg-green-600" : ""}
+            className={`rounded-xl ${filter === "all" ? "" : "border-border/60"}`}
           >
             All
           </Button>
@@ -125,7 +119,7 @@ export function Goals() {
             variant={filter === "active" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("active")}
-            className={filter === "active" ? "bg-green-600" : ""}
+            className={`rounded-xl ${filter === "active" ? "" : "border-border/60"}`}
           >
             Active
           </Button>
@@ -133,62 +127,56 @@ export function Goals() {
             variant={filter === "completed" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("completed")}
-            className={filter === "completed" ? "bg-green-600" : ""}
+            className={`rounded-xl ${filter === "completed" ? "" : "border-border/60"}`}
           >
             Completed
           </Button>
         </div>
 
-        {/* Goals List */}
         {filteredGoals.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Target size={32} className="text-green-600" />
+          <Card className="border border-border rounded-2xl shadow-md">
+            <CardContent className="p-10 text-center">
+              <div className="bg-primary/10 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Target size={32} className="text-primary" strokeWidth={1.6} />
               </div>
-              <h3 className="text-lg mb-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 {filter === "all" ? "No goals yet" : `No ${filter} goals`}
               </h3>
-              <p className="text-gray-600 mb-4">Set a goal and start your journey</p>
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Plus size={20} className="mr-2" />
-                New Goal
+              <p className="text-muted-foreground text-sm mb-4">Set an intention and take small steps</p>
+              <Button onClick={() => setIsDialogOpen(true)} className="rounded-xl">
+                <Plus size={18} className="mr-2" strokeWidth={1.8} />
+                New goal
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredGoals.map((goal) => {
               const isOverdue =
                 !goal.completed && new Date(goal.targetDate) < new Date();
-              
+
               return (
                 <Card
                   key={goal.id}
-                  className={`overflow-hidden ${
-                    goal.completed ? "opacity-60" : ""
-                  }`}
+                  className={`overflow-hidden border border-border rounded-xl shadow-sm hover:shadow-md hover:border-primary/20 transition-all ${goal.completed ? "opacity-75" : ""}`}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <button
                         onClick={() => toggleComplete(goal.id)}
-                        className="mt-1 text-green-600 hover:text-green-700 transition-colors"
+                        className="mt-0.5 text-primary hover:underline transition-colors"
                       >
                         {goal.completed ? (
-                          <CheckCircle2 size={24} className="fill-current" />
+                          <CheckCircle2 size={24} className="fill-current" strokeWidth={1.6} />
                         ) : (
-                          <Circle size={24} />
+                          <Circle size={24} strokeWidth={1.6} />
                         )}
                       </button>
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-2">
                           <h3
-                            className={`text-lg ${
-                              goal.completed ? "line-through" : ""
+                            className={`text-base font-semibold text-foreground ${
+                              goal.completed ? "line-through text-muted-foreground" : ""
                             }`}
                           >
                             {goal.title}
@@ -197,19 +185,17 @@ export function Goals() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(goal.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1"
+                            className="text-destructive hover:bg-destructive/10 -mt-1 rounded-lg h-8 w-8 p-0"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={18} strokeWidth={1.6} />
                           </Button>
                         </div>
                         {goal.description && (
-                          <p className="text-gray-600 text-sm mb-3">
-                            {goal.description}
-                          </p>
+                          <p className="text-muted-foreground text-sm mb-2">{goal.description}</p>
                         )}
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
-                            className={`text-xs px-2 py-1 rounded ${getCategoryColor(
+                            className={`text-xs font-medium px-2 py-1 rounded-md ${getCategoryColor(
                               goal.category
                             )}`}
                           >
@@ -217,11 +203,11 @@ export function Goals() {
                           </span>
                           <div
                             className={`flex items-center text-xs ${
-                              isOverdue ? "text-red-600" : "text-gray-500"
+                              isOverdue ? "text-destructive" : "text-muted-foreground"
                             }`}
                           >
-                            <Calendar size={12} className="mr-1" />
-                            Target: {new Date(goal.targetDate).toLocaleDateString()}
+                            <Calendar size={12} className="mr-1" strokeWidth={1.6} />
+                            {new Date(goal.targetDate).toLocaleDateString()}
                             {isOverdue && " (overdue)"}
                           </div>
                         </div>
@@ -302,9 +288,9 @@ export function Goals() {
               <Button
                 onClick={handleAddGoal}
                 disabled={!newGoal.title || !newGoal.targetDate}
-                className="bg-green-600 hover:bg-green-700"
+                className="rounded-xl"
               >
-                Set Goal
+                Set goal
               </Button>
             </DrawerFooter>
           </DrawerContent>

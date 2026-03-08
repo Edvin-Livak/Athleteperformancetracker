@@ -21,6 +21,15 @@ import {
   SelectValue,
 } from "./ui/select";
 
+interface PersonalBestHistoryEntry {
+  id: string;
+  result: string;
+  unit: string;
+  date: string;
+  notes?: string;
+  linkedVideoId?: string;
+}
+
 interface PersonalBest {
   id: string;
   event: string;
@@ -29,6 +38,7 @@ interface PersonalBest {
   date: string;
   notes?: string;
   linkedVideoId?: string;
+  history: PersonalBestHistoryEntry[];
 }
 
 interface VideoEntry {
@@ -58,11 +68,7 @@ function parseResultToNumber(result: string, unit: string): number | null {
     const hours = Number(parts[0]);
     const minutes = Number(parts[1]);
     const seconds = Number(parts[2]);
-    if (
-      Number.isNaN(hours) ||
-      Number.isNaN(minutes) ||
-      Number.isNaN(seconds)
-    ) {
+    if (Number.isNaN(hours) || Number.isNaN(minutes) || Number.isNaN(seconds)) {
       return null;
     }
     return hours * 3600 + minutes * 60 + seconds;
@@ -90,13 +96,73 @@ function formatValueForUnit(value: number, unit: string): string {
   return value.toFixed(2);
 }
 
+function normalizeBests(raw: any[]): PersonalBest[] {
+  const grouped: Record<string, PersonalBestHistoryEntry[]> = {};
+
+  for (const item of raw) {
+    const eventKey = item.event;
+
+    if (!grouped[eventKey]) grouped[eventKey] = [];
+
+    // New format: already has history
+    if (Array.isArray(item.history) && item.history.length > 0) {
+      grouped[eventKey].push(
+        ...item.history.map((entry: any) => ({
+          id: entry.id,
+          result: entry.result,
+          unit: entry.unit,
+          date: entry.date,
+          notes: entry.notes,
+          linkedVideoId: entry.linkedVideoId,
+        })),
+      );
+    } else {
+      // Old format: one top-level record = one history point
+      grouped[eventKey].push({
+        id: item.id,
+        result: item.result,
+        unit: item.unit,
+        date: item.date,
+        notes: item.notes,
+        linkedVideoId: item.linkedVideoId,
+      });
+    }
+  }
+
+  return Object.entries(grouped).map(([event, historyEntries]) => {
+    // remove accidental duplicates by id
+    const uniqueHistory = historyEntries.filter(
+      (entry, index, arr) => arr.findIndex((e) => e.id === entry.id) === index,
+    );
+
+    const sortedHistory = [...uniqueHistory].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+
+    const latest = sortedHistory[sortedHistory.length - 1];
+
+    return {
+      id: latest.id,
+      event,
+      result: latest.result,
+      unit: latest.unit,
+      date: latest.date,
+      notes: latest.notes,
+      linkedVideoId: latest.linkedVideoId,
+      history: sortedHistory,
+    };
+  });
+}
+
 export function PersonalBests() {
   const [bests, setBests] = useState<PersonalBest[]>([]);
   const [videos, setVideos] = useState<VideoEntry[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<PersonalBest | null>(
+    null,
+  );
   const [isProgressOpen, setIsProgressOpen] = useState(false);
 
   const [newBest, setNewBest] = useState({
@@ -105,12 +171,16 @@ export function PersonalBests() {
     unit: "seconds",
     notes: "",
     linkedVideoId: "",
+    date: new Date().toISOString().split("T")[0],
   });
 
   useEffect(() => {
     const stored = localStorage.getItem("athleteBests");
     if (stored) {
-      setBests(JSON.parse(stored));
+      const parsed = JSON.parse(stored);
+      const normalized = normalizeBests(parsed);
+      setBests(normalized);
+      localStorage.setItem("athleteBests", JSON.stringify(normalized));
     }
 
     const storedVideos = localStorage.getItem("athleteVideos");
@@ -132,6 +202,7 @@ export function PersonalBests() {
       unit: "seconds",
       notes: "",
       linkedVideoId: "",
+      date: new Date().toISOString().split("T")[0],
     });
     setIsDialogOpen(true);
   };
@@ -143,44 +214,92 @@ export function PersonalBests() {
       result: record.result,
       unit: record.unit,
       notes: record.notes || "",
-      linkedVideoId: record.linkedVideoId || "",
+      linkedVideoId: "",
+      date: record.date.split("T")[0],
     });
     setIsDialogOpen(true);
   };
 
-  const openProgressDialog = (eventName: string) => {
-    setSelectedEvent(eventName);
+  const openProgressDialog = (record: PersonalBest) => {
+    setSelectedRecord(record);
     setIsProgressOpen(true);
   };
 
   const handleSaveBest = () => {
     if (!newBest.event || !newBest.result) return;
 
-    if (editingId) {
-  const best: PersonalBest = {
-    id: Date.now().toString(),
-    event: newBest.event,
-    result: newBest.result,
-    unit: newBest.unit,
-    date: new Date().toISOString(),
-    notes: newBest.notes,
-    linkedVideoId: newBest.linkedVideoId || undefined,
-  };
+    const newHistoryEntry: PersonalBestHistoryEntry = {
+      id: Date.now().toString(),
+      result: newBest.result,
+      unit: newBest.unit,
+      date: new Date(newBest.date).toISOString(),
+      notes: newBest.notes || undefined,
+      linkedVideoId: newBest.linkedVideoId || undefined,
+    };
 
-  saveBests([best, ...bests]);
-  setIsDialogOpen(false);
-  setEditingId(null);
-  return;
-}
+    if (editingId) {
+      const updated = bests.map((b) =>
+        b.id === editingId
+          ? {
+              ...b,
+              event: newBest.event,
+              result: newBest.result,
+              unit: newBest.unit,
+              date: new Date(newBest.date).toISOString(),
+              notes: newBest.notes || undefined,
+              linkedVideoId: newBest.linkedVideoId || undefined,
+              history: [...(b.history || []), newHistoryEntry].sort(
+                (a, b) =>
+                  new Date(a.date).getTime() - new Date(b.date).getTime(),
+              ),
+            }
+          : b,
+      );
+
+      saveBests(updated);
+      setIsDialogOpen(false);
+      setEditingId(null);
+      return;
+    }
+
+    const existingForEvent = bests.find(
+      (b) =>
+        b.event.trim().toLowerCase() === newBest.event.trim().toLowerCase(),
+    );
+
+    if (existingForEvent) {
+      const updated = bests.map((b) =>
+        b.id === existingForEvent.id
+          ? {
+              ...b,
+              event: newBest.event,
+              result: newBest.result,
+              unit: newBest.unit,
+              date: new Date(newBest.date).toISOString(),
+              notes: newBest.notes || undefined,
+              linkedVideoId: newBest.linkedVideoId || undefined,
+              history: [...(b.history || []), newHistoryEntry].sort(
+                (a, b) =>
+                  new Date(a.date).getTime() - new Date(b.date).getTime(),
+              ),
+            }
+          : b,
+      );
+
+      saveBests(updated);
+      setIsDialogOpen(false);
+      return;
+    }
 
     const best: PersonalBest = {
       id: Date.now().toString(),
       event: newBest.event,
       result: newBest.result,
       unit: newBest.unit,
-      date: new Date().toISOString(),
-      notes: newBest.notes,
+      date: new Date(newBest.date).toISOString(),
+      notes: newBest.notes || undefined,
       linkedVideoId: newBest.linkedVideoId || undefined,
+      history: [newHistoryEntry],
     };
 
     saveBests([best, ...bests]);
@@ -205,19 +324,8 @@ export function PersonalBests() {
               ? "e.g., 180"
               : "e.g., 10";
 
-  const groupedBests = bests.reduce(
-    (acc, best) => {
-      if (!acc[best.event]) {
-        acc[best.event] = [];
-      }
-      acc[best.event].push(best);
-      return acc;
-    },
-    {} as Record<string, PersonalBest[]>,
-  );
-
-  const selectedEntries = selectedEvent
-    ? [...(groupedBests[selectedEvent] || [])].sort(
+  const selectedEntries = selectedRecord
+    ? [...(selectedRecord.history || [])].sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       )
     : [];
@@ -234,7 +342,7 @@ export function PersonalBests() {
         point,
       ): point is {
         index: number;
-        entry: PersonalBest;
+        entry: PersonalBestHistoryEntry;
         value: number;
       } => point.value !== null,
     );
@@ -246,6 +354,13 @@ export function PersonalBests() {
   let pointsString = "";
   let yMinLabel = "";
   let yMaxLabel = "";
+
+  let chartPoints: {
+    id: string;
+    x: number;
+    y: number;
+    label: string;
+  }[] = [];
 
   if (parsedPoints.length > 0) {
     const values = parsedPoints.map((p) => p.value);
@@ -265,22 +380,27 @@ export function PersonalBests() {
     yMinLabel = formatValueForUnit(min, chartUnit);
     yMaxLabel = formatValueForUnit(max, chartUnit);
 
-    pointsString = parsedPoints
-      .map((point, i) => {
-        const x =
-          parsedPoints.length === 1
-            ? chartWidth / 2
-            : padding +
-              (i * (chartWidth - padding * 2)) / (parsedPoints.length - 1);
+      chartPoints = parsedPoints.map((point, i) => {
+    const x =
+      parsedPoints.length === 1
+        ? chartWidth / 2
+        : padding +
+          (i * (chartWidth - padding * 2)) / (parsedPoints.length - 1);
 
-        const y =
-          chartHeight -
-          padding -
-          ((point.value - min) / (max - min)) * (chartHeight - padding * 2);
+    const y =
+      chartHeight -
+      padding -
+      ((point.value - min) / (max - min)) * (chartHeight - padding * 2);
 
-        return `${x},${y}`;
-      })
-      .join(" ");
+    return {
+      id: point.entry.id,
+      x,
+      y,
+      label: `${point.entry.result}`,
+    };
+  });
+
+  pointsString = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
   }
 
   const latestEntry =
@@ -338,7 +458,6 @@ export function PersonalBests() {
                 <Card
                   key={record.id}
                   className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => openProgressDialog(record.event)}
                 >
                   <CardContent className="p-3">
                     <div className="flex items-center gap-3">
@@ -380,29 +499,45 @@ export function PersonalBests() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditDialog(record);
-                          }}
-                          className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 flex-shrink-0 h-8 w-8 p-0"
-                        >
-                          <Pencil size={16} /> Update
-                        </Button>
+                      <div className="flex flex-col gap-2 flex-shrink-0 min-w-[120px]">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditDialog(record);
+                            }}
+                            className="flex-1 h-8 px-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                          >
+                            <Pencil size={16} className="mr-1" />
+                            Log Result
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(record.id);
+                            }}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
 
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(record.id);
+                            openProgressDialog(record);
                           }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0 h-8 w-8 p-0"
+                          className="w-full h-8 text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700"
                         >
-                          <Trash2 size={16} /> 
+                          <TrendingUp size={14} className="mr-1" />
+                          View Progress
                         </Button>
                       </div>
                     </div>
@@ -417,29 +552,39 @@ export function PersonalBests() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingId ? "Edit Personal Best" : "Add Personal Best"}
+                {editingId ? "Log New Personal Best" : "Add Personal Best"}
               </DialogTitle>
               <DialogDescription>
-                Enter your personal best details below.
+                {editingId
+                  ? "Log a new result for this event. It will be added to your progress history."
+                  : "Enter your personal best details below."}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="event">Event</Label>
-                <Input
-                  id="event"
-                  placeholder="e.g., 100m Sprint, Long Jump"
-                  value={newBest.event}
-                  onChange={(e) =>
-                    setNewBest({ ...newBest, event: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              {editingId ? (
+                <div className="pb-2 border-b border-gray-200">
+                  <h3 className="text-xl font-semibold text-orange-600 tracking-tight">
+                    {newBest.event}
+                  </h3>
+                </div>
+              ) : (
                 <div className="space-y-2">
-                  <Label htmlFor="result">Result</Label>
+                  <Label htmlFor="event">Event</Label>
+                  <Input
+                    id="event"
+                    placeholder="e.g., 100m Sprint, Long Jump"
+                    value={newBest.event}
+                    onChange={(e) =>
+                      setNewBest({ ...newBest, event: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+
+              {editingId ? (
+                <div className="space-y-2">
+                  <Label htmlFor="result">New Result</Label>
                   <Input
                     id="result"
                     placeholder={resultPlaceholder}
@@ -449,30 +594,56 @@ export function PersonalBests() {
                     }
                   />
                 </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="result">Result</Label>
+                    <Input
+                      id="result"
+                      placeholder={resultPlaceholder}
+                      value={newBest.result}
+                      onChange={(e) =>
+                        setNewBest({ ...newBest, result: e.target.value })
+                      }
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit</Label>
-                  <Select
-                    value={newBest.unit}
-                    onValueChange={(value) =>
-                      setNewBest({ ...newBest, unit: value })
-                    }
-                  >
-                    <SelectTrigger id="unit">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="seconds">seconds</SelectItem>
-                      <SelectItem value="mm:ss">mm:ss</SelectItem>
-                      <SelectItem value="hh:mm:ss">hh:mm:ss</SelectItem>
-                      <SelectItem value="meters">meters</SelectItem>
-                      <SelectItem value="kg">kg</SelectItem>
-                      <SelectItem value="lbs">lbs</SelectItem>
-                      <SelectItem value="reps">reps</SelectItem>
-                      <SelectItem value="points">points</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Label htmlFor="unit">Unit</Label>
+                    <Select
+                      value={newBest.unit}
+                      onValueChange={(value) =>
+                        setNewBest({ ...newBest, unit: value })
+                      }
+                    >
+                      <SelectTrigger id="unit">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="seconds">seconds</SelectItem>
+                        <SelectItem value="mm:ss">mm:ss</SelectItem>
+                        <SelectItem value="hh:mm:ss">hh:mm:ss</SelectItem>
+                        <SelectItem value="meters">meters</SelectItem>
+                        <SelectItem value="kg">kg</SelectItem>
+                        <SelectItem value="lbs">lbs</SelectItem>
+                        <SelectItem value="reps">reps</SelectItem>
+                        <SelectItem value="points">points</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={newBest.date}
+                  onChange={(e) =>
+                    setNewBest({ ...newBest, date: e.target.value })
+                  }
+                />
               </div>
 
               <div className="space-y-2">
@@ -514,10 +685,7 @@ export function PersonalBests() {
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
@@ -525,7 +693,7 @@ export function PersonalBests() {
                 disabled={!newBest.event || !newBest.result}
                 className="bg-orange-600 hover:bg-orange-700"
               >
-                {editingId ? "Save Changes" : "Add Record"}
+                {editingId ? "Update PB" : "Add Record"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -534,7 +702,7 @@ export function PersonalBests() {
         <Dialog open={isProgressOpen} onOpenChange={setIsProgressOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{selectedEvent || "Progress"}</DialogTitle>
+              <DialogTitle>{selectedRecord?.event || "Progress"}</DialogTitle>
               <DialogDescription>
                 Track how your results have changed over time.
               </DialogDescription>
@@ -588,44 +756,51 @@ export function PersonalBests() {
                           />
                         )}
 
-                        {parsedPoints.map((point, i) => {
-                          const values = parsedPoints.map((p) => p.value);
-                          let min = Math.min(...values);
-                          let max = Math.max(...values);
+                        {chartPoints.map((point) => {
+  const labelWidth = Math.max(34, point.label.length * 7 + 10);
+  const labelHeight = 20;
+  const labelX = point.x - labelWidth / 2;
+  const labelY = point.y - 30;
 
-                          if (min === max) {
-                            min = min - 1;
-                            max = max + 1;
-                          } else {
-                            const range = max - min;
-                            const extra = range * 0.15;
-                            min = min - extra;
-                            max = max + extra;
-                          }
+  return (
+    <g key={point.id}>
+      {/* Label bubble */}
+      <rect
+        x={labelX}
+        y={labelY}
+        width={labelWidth}
+        height={labelHeight}
+        rx="10"
+        fill="white"
+        stroke="#ea580c"
+        strokeWidth="1"
+      />
+      <text
+        x={point.x}
+        y={labelY + 13}
+        textAnchor="middle"
+        fontSize="10"
+        fontWeight="500"
+        fill="#ea580c"
+      >
+        {point.label}
+      </text>
 
-                          const x =
-                            parsedPoints.length === 1
-                              ? chartWidth / 2
-                              : padding +
-                                (i * (chartWidth - padding * 2)) /
-                                  (parsedPoints.length - 1);
+      {/* Small connector line */}
+      <line
+        x1={point.x}
+        y1={labelY + labelHeight}
+        x2={point.x}
+        y2={point.y - 6}
+        stroke="#ea580c"
+        strokeWidth="1"
+      />
 
-                          const y =
-                            chartHeight -
-                            padding -
-                            ((point.value - min) / (max - min)) *
-                              (chartHeight - padding * 2);
-
-                          return (
-                            <circle
-                              key={point.entry.id}
-                              cx={x}
-                              cy={y}
-                              r="4"
-                              fill="#ea580c"
-                            />
-                          );
-                        })}
+      {/* Point */}
+      <circle cx={point.x} cy={point.y} r="4" fill="#ea580c" />
+    </g>
+  );
+})}
 
                         <text
                           x={padding - 4}

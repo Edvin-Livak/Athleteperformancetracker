@@ -107,7 +107,8 @@ export function Goals() {
             className="bg-green-600 hover:bg-green-700"
             size="lg"
           >
-            <Plus size={20} />
+            <Plus size={20} className="mr-2" />
+            Add Entry
           </Button>
         </div>
 
@@ -168,8 +169,10 @@ export function Goals() {
               return (
                 <Card
                   key={goal.id}
-                  className={`overflow-hidden ${
-                    goal.completed ? "opacity-60" : ""
+                  className={`overflow-hidden transition-colors ${
+                    goal.completed
+                    ? "bg-green-200 border-green-500"
+                    : "bg-white bordergray-200"
                   }`}
                 >
                   <CardContent className="p-4">

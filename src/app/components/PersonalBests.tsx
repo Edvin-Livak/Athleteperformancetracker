@@ -415,39 +415,53 @@ export function PersonalBests() {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-md mx-auto">
-        <div className="flex justify-between items-center mb-6 pt-6">
+        <div className="flex justify-between items-center mb-5 pt-4">
           <div>
-            <h1 className="text-3xl mb-1">Personal Bests</h1>
-            <p className="text-gray-600">
+            <h1 className="text-xl font-semibold text-foreground mb-0.5">
+              Personal bests
+            </h1>
+            <p className="text-muted-foreground text-sm">
               {bests.length} record{bests.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <Button
-            onClick={openAddDialog}
-            className="bg-orange-600 hover:bg-orange-700"
-            size="lg"
-          >
-            <Plus size={18} className="mr-2" />
-            Add Record
-          </Button>
+
+          <div className="flex flex-col items-center">
+            <Button
+              onClick={openAddDialog}
+              className="bg-orange-600 hover:bg-orange-700 rounded-full h-9 px-3 flex items-center gap-1 text-xs"
+            >
+              <Plus size={14} strokeWidth={2} />
+              Add
+            </Button>
+          </div>
         </div>
 
         {bests.length === 0 ? (
           <Card>
-            <CardContent className="p-12 text-center">
-              <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trophy size={32} className="text-orange-600" />
-              </div>
-              <h3 className="text-lg mb-2">No records yet</h3>
-              <p className="text-gray-600 mb-4">Track your personal bests</p>
-              <Button
-                onClick={openAddDialog}
-                className="bg-orange-600 hover:bg-orange-700"
-              >
-                <Plus size={20} className="mr-2" />
-                Add Record
-              </Button>
-            </CardContent>
+            <Card className="border border-border rounded-2xl shadow-md">
+              <CardContent className="p-10 text-center">
+                <div className="bg-orange-100 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Trophy
+                    size={32}
+                    className="text-orange-600"
+                    strokeWidth={1.6}
+                  />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  No records yet
+                </h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Track your personal bests over time
+                </p>
+                <Button
+                  onClick={openAddDialog}
+                  className="bg-orange-600 hover:bg-orange-700 rounded-xl"
+                >
+                  <Plus size={18} className="mr-2" strokeWidth={1.8} />
+                  Add record
+                </Button>
+              </CardContent>
+            </Card>
           </Card>
         ) : (
           <div className="space-y-2">
@@ -459,50 +473,53 @@ export function PersonalBests() {
               return (
                 <Card
                   key={record.id}
-                  className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                  className="overflow-hidden border border-border rounded-xl shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
                 >
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-gradient-to-br from-orange-500 to-amber-500 p-2 rounded-lg text-white flex-shrink-0">
-                        <Trophy size={20} />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm mb-0.5 truncate">
-                          {record.event}
-                        </h3>
-
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-lg">{record.result}</span>
-                          <span className="text-sm text-gray-600">
-                            {record.unit}
-                          </span>
-                          <span className="text-xs text-gray-400">·</span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(record.date).toLocaleDateString()}
-                          </span>
+                  <CardContent className="p-2">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="bg-orange-100 text-orange-600 p-2 rounded-lg flex-shrink-0 mt-0.5 self-start">
+                          <Trophy size={18} strokeWidth={1.7} />
                         </div>
 
-                        {record.notes && (
-                          <p className="text-xs text-gray-600 mt-1 truncate">
-                            {record.notes}
-                          </p>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold text-foreground truncate">
+                            {record.event}
+                          </h3>
 
-                        {linkedVideo && (
-                          <Link
-                            to={`/videos/${linkedVideo.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <p className="text-xs text-blue-600 mt-1 truncate hover:underline">
-                              Linked video: {linkedVideo.title}
+                          <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                            <span className="text-lg font-semibold text-orange-600 tabular-nums">
+                              {record.result}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {record.unit}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(record.date).toLocaleDateString()}
+                            </span>
+                          </div>
+
+                          {record.notes && (
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                              {record.notes}
                             </p>
-                          </Link>
-                        )}
+                          )}
+
+                          {linkedVideo && (
+                            <Link
+                              to={`/videos/${linkedVideo.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <p className="text-xs text-blue-600 mt-1 truncate hover:underline">
+                                Linked video: {linkedVideo.title}
+                              </p>
+                            </Link>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex flex-col gap-2 flex-shrink-0 min-w-[120px]">
-                        <div className="flex items-center gap-1">
+                      <div className="grid grid-cols-[4fr_1fr] gap-2">
+                        <div className="flex flex-col gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -510,36 +527,44 @@ export function PersonalBests() {
                               e.stopPropagation();
                               openEditDialog(record);
                             }}
-                            className="flex-1 h-8 px-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                            className="w-full rounded-xl border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                           >
-                            <Pencil size={16} className="mr-1" />
+                            <Pencil
+                              size={16}
+                              className="mr-1"
+                              strokeWidth={1.6}
+                            />
                             Log Result
                           </Button>
 
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDelete(record.id);
+                              openProgressDialog(record);
                             }}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                            className="w-full rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
                           >
-                            <Trash2 size={16} />
+                            <TrendingUp
+                              size={14}
+                              className="mr-1"
+                              strokeWidth={1.8}
+                            />
+                            View Progress
                           </Button>
                         </div>
 
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            openProgressDialog(record);
+                            handleDelete(record.id);
                           }}
-                          className="w-full h-8 text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700"
+                          className="h-full min-h-[76px] w-full rounded-xl text-destructive hover:bg-destructive/10 p-0"
                         >
-                          <TrendingUp size={14} className="mr-1" />
-                          View Progress
+                          <Trash2 size={18} strokeWidth={1.6} />
                         </Button>
                       </div>
                     </div>
@@ -551,7 +576,7 @@ export function PersonalBests() {
         )}
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingId ? "Log New Personal Best" : "Add Personal Best"}
@@ -686,7 +711,7 @@ export function PersonalBests() {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
@@ -702,7 +727,7 @@ export function PersonalBests() {
         </Dialog>
 
         <Dialog open={isProgressOpen} onOpenChange={setIsProgressOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedRecord?.event || "Progress"}</DialogTitle>
               <DialogDescription>
@@ -927,7 +952,7 @@ export function PersonalBests() {
               </div>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
               <Button
                 variant="outline"
                 onClick={() => setIsProgressOpen(false)}

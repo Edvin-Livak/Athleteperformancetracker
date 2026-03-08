@@ -380,27 +380,29 @@ export function PersonalBests() {
     yMinLabel = formatValueForUnit(min, chartUnit);
     yMaxLabel = formatValueForUnit(max, chartUnit);
 
-      chartPoints = parsedPoints.map((point, i) => {
-    const x =
-      parsedPoints.length === 1
-        ? chartWidth / 2
-        : padding +
-          (i * (chartWidth - padding * 2)) / (parsedPoints.length - 1);
+    chartPoints = parsedPoints.map((point, i) => {
+      const x =
+        parsedPoints.length === 1
+          ? chartWidth / 2
+          : padding +
+            (i * (chartWidth - padding * 2)) / (parsedPoints.length - 1);
 
-    const y =
-      chartHeight -
-      padding -
-      ((point.value - min) / (max - min)) * (chartHeight - padding * 2);
+      const y =
+        chartHeight -
+        padding -
+        ((point.value - min) / (max - min)) * (chartHeight - padding * 2);
 
-    return {
-      id: point.entry.id,
-      x,
-      y,
-      label: `${point.entry.result}`,
-    };
-  });
+      return {
+        id: point.entry.id,
+        x,
+        y,
+        label: `${point.entry.result}`,
+      };
+    });
 
-  pointsString = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
+    pointsString = chartPoints
+      .map((point) => `${point.x},${point.y}`)
+      .join(" ");
   }
 
   const latestEntry =
@@ -757,50 +759,58 @@ export function PersonalBests() {
                         )}
 
                         {chartPoints.map((point) => {
-  const labelWidth = Math.max(34, point.label.length * 7 + 10);
-  const labelHeight = 20;
-  const labelX = point.x - labelWidth / 2;
-  const labelY = point.y - 30;
+                          const labelWidth = Math.max(
+                            34,
+                            point.label.length * 7 + 10,
+                          );
+                          const labelHeight = 20;
+                          const labelX = point.x - labelWidth / 2;
+                          const labelY = point.y - 30;
 
-  return (
-    <g key={point.id}>
-      {/* Label bubble */}
-      <rect
-        x={labelX}
-        y={labelY}
-        width={labelWidth}
-        height={labelHeight}
-        rx="10"
-        fill="white"
-        stroke="#ea580c"
-        strokeWidth="1"
-      />
-      <text
-        x={point.x}
-        y={labelY + 13}
-        textAnchor="middle"
-        fontSize="10"
-        fontWeight="500"
-        fill="#ea580c"
-      >
-        {point.label}
-      </text>
+                          return (
+                            <g key={point.id}>
+                              {/* Label bubble */}
+                              <rect
+                                x={labelX}
+                                y={labelY}
+                                width={labelWidth}
+                                height={labelHeight}
+                                rx="10"
+                                fill="white"
+                                stroke="#ea580c"
+                                strokeWidth="1"
+                              />
+                              <text
+                                x={point.x}
+                                y={labelY + 13}
+                                textAnchor="middle"
+                                fontSize="10"
+                                fontWeight="500"
+                                fill="#ea580c"
+                              >
+                                {point.label}
+                              </text>
 
-      {/* Small connector line */}
-      <line
-        x1={point.x}
-        y1={labelY + labelHeight}
-        x2={point.x}
-        y2={point.y - 6}
-        stroke="#ea580c"
-        strokeWidth="1"
-      />
+                              {/* Small connector line */}
+                              <line
+                                x1={point.x}
+                                y1={labelY + labelHeight}
+                                x2={point.x}
+                                y2={point.y - 6}
+                                stroke="#ea580c"
+                                strokeWidth="1"
+                              />
 
-      {/* Point */}
-      <circle cx={point.x} cy={point.y} r="4" fill="#ea580c" />
-    </g>
-  );
-})}
+                              {/* Point */}
+                              <circle
+                                cx={point.x}
+                                cy={point.y}
+                                r="4"
+                                fill="#ea580c"
+                              />
+                            </g>
+                          );
+                        })}
 
                         <text
                           x={padding - 4}

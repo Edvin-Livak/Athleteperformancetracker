@@ -169,10 +169,10 @@ export function Videos() {
               onClick={toggleCompareMode}
               variant={compareMode ? "default" : "outline"}
               size="sm"
-              className={`rounded-xl ${
+              className={`h-9 rounded-xl px-3 inline-flex items-center gap-1.5 text-sm ${
                 compareMode
-                  ? "bg-violet-600 hover:bg-violet-700 text-white"
-                  : "border-border/60"
+                  ? "bg-violet-600 hover:bg-violet-700 text-white border-transparent"
+                  : "border-border/60 text-foreground"
               }`}
             >
               {compareMode ? (
@@ -180,15 +180,16 @@ export function Videos() {
               ) : (
                 <Columns2 size={16} strokeWidth={1.8} />
               )}
-              compare
+              Compare
             </Button>
 
             <Button
               onClick={() => setIsDialogOpen(true)}
-              size="lg"
-              className="rounded-xl bg-violet-600 hover:bg-violet-700"
+              size="sm"
+              className="h-9 rounded-xl px-3 bg-violet-600 hover:bg-violet-700 inline-flex items-center gap-1.5 text-sm"
             >
-              <Plus size={20} strokeWidth={1.8} />
+              <Plus size={16} strokeWidth={1.8} />
+              Add
             </Button>
           </div>
         </div>
@@ -219,7 +220,8 @@ export function Videos() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-3 gap-3">
+          <>
+            <div className="grid grid-cols-3 gap-3">
             {videos.map((video) => {
               const isSelected = selected.includes(video.id);
 
@@ -306,14 +308,20 @@ export function Videos() {
               );
             })}
           </div>
+          </>
         )}
 
         {compareMode && (
-          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20">
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 w-full max-w-md px-4">
+            <p className="text-xs text-muted-foreground text-center">
+              {selected.length === 2
+                ? "Ready to compare"
+                : "Select 2 videos to compare (max 2)"}
+            </p>
             <Button
               onClick={goToCompare}
               disabled={selected.length !== 2}
-              className="bg-violet-600 hover:bg-violet-700 shadow-lg px-6 rounded-xl"
+              className="w-full rounded-xl bg-violet-600 hover:bg-violet-700 shadow-lg"
             >
               Compare ({selected.length}/2)
             </Button>

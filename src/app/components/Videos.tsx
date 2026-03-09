@@ -14,7 +14,16 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Link, useNavigate, useLocation } from "react-router";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 
 interface VideoEntry {
   id: string;
@@ -37,6 +46,7 @@ export function Videos() {
     description: "",
     videoUrl: "",
   });
+  const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const startCompare = (location.state as any)?.startCompare;
@@ -127,6 +137,13 @@ export function Videos() {
   const handleDelete = (id: string) => {
     saveVideos(videos.filter((v) => v.id !== id));
     setSelected((prev) => prev.filter((x) => x !== id));
+    setVideoToDelete(null);
+  };
+
+  const openDeleteDialog = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setVideoToDelete(id);
   };
 
   const toggleCompareMode = () => {
@@ -248,22 +265,13 @@ export function Videos() {
                           </div>
                         )}
 
-                        <ConfirmDeleteButton
-                          onConfirm={() => handleDelete(video.id)}
-                          title="Delete video?"
-                          description="This video will be permanently removed and cannot be recovered."
+                        <button
+                          type="button"
+                          onClick={(e) => openDeleteDialog(e, video.id)}
+                          className="absolute top-1.5 right-1.5 z-10 h-7 w-7 p-0 rounded-lg bg-white/85 hover:bg-white text-destructive hover:text-destructive shadow-sm inline-flex items-center justify-center"
                         >
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            className="absolute top-1.5 right-1.5 h-7 w-7 p-0 rounded-lg bg-white/85 hover:bg-white text-destructive hover:text-destructive shadow-sm inline-flex items-center justify-center"
-                          >
-                            <Trash2 size={14} strokeWidth={1.8} />
-                          </button>
-                        </ConfirmDeleteButton>
+                          <Trash2 size={14} strokeWidth={1.8} />
+                        </button>
                       </div>
 
                       <div className="px-2 py-2">
@@ -327,6 +335,27 @@ export function Videos() {
             </Button>
           </div>
         )}
+
+        {/* Delete video confirmation */}
+        <AlertDialog open={videoToDelete !== null} onOpenChange={(open) => !open && setVideoToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete video?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This video will be permanently removed and cannot be recovered.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => videoToDelete && handleDelete(videoToDelete)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Add Video - bottom drawer */}
         <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>

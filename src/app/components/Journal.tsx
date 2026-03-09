@@ -3,34 +3,29 @@ import { Plus, Calendar, Trash2, BookOpen } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "./ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerDescription,
+} from "./ui/drawer";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
 interface JournalEntry {
   id: string;
   date: string;
-
-  title: string; // Event title
-  result: string; // Result summary
-
+  title: string;
+  result: string;
   wentWell: string;
   wentPoorly: string;
   conditions: string;
   improvement: string;
-
   notes?: string;
-
   mood?: string;
-
-  // Optional: store a compiled string for list preview + "Read more"
   content: string;
 }
 
@@ -38,7 +33,6 @@ export function Journal() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
-
   const [step, setStep] = useState<1 | 2>(1);
 
   const [newEntry, setNewEntry] = useState({
@@ -64,11 +58,6 @@ export function Journal() {
     localStorage.setItem("athleteJournal", JSON.stringify(updatedEntries));
   };
 
-  const openNewEntry = () => {
-    resetNewEntry();
-    setIsDialogOpen(true);
-  };
-
   const resetNewEntry = () => {
     setStep(1);
     setNewEntry({
@@ -81,6 +70,11 @@ export function Journal() {
       improvement: "",
       notes: "",
     });
+  };
+
+  const openNewEntry = () => {
+    resetNewEntry();
+    setIsDialogOpen(true);
   };
 
   const cancelNewEntry = () => {
@@ -116,191 +110,296 @@ export function Journal() {
     const entry: JournalEntry = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
-
       title: newEntry.title,
       result: newEntry.result,
       mood: newEntry.mood || undefined,
-
       wentWell: newEntry.wentWell,
       wentPoorly: newEntry.wentPoorly,
       conditions: newEntry.conditions,
       improvement: newEntry.improvement,
-      notes: newEntry.notes,
-
+      notes: newEntry.notes || undefined,
       content: compiled,
     };
 
     saveEntries([entry, ...entries]);
-    //setIsDialogOpen(false);
     cancelNewEntry();
   };
 
   const handleDelete = (id: string) => {
     saveEntries(entries.filter((e) => e.id !== id));
+    if (expandedEntry === id) {
+      setExpandedEntry(null);
+    }
+  };
+
+  const getPreview = (entry: JournalEntry) => {
+    return (
+      entry.wentWell ||
+      entry.improvement ||
+      entry.notes ||
+      entry.wentPoorly ||
+      entry.conditions ||
+      entry.result
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-5 pb-28">
       <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 pt-6">
+        <div className="flex justify-between items-center mb-5 pt-4">
           <div>
-            <h1 className="text-3xl mb-1">Journal</h1>
-            <p className="text-gray-600">
-              {entries.length} entr
-              {entries.length !== 1 ? "ies" : "y"}
+            <h1 className="text-xl font-semibold text-foreground mb-0.5">
+              Journal
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {entries.length} entr{entries.length !== 1 ? "ies" : "y"}
             </p>
           </div>
+
           <Button
-            onClick={() => setIsDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-            size="lg"
+            onClick={openNewEntry}
+            className="bg-blue-600 hover:bg-blue-700 rounded-full h-9 px-3 flex items-center gap-1 text-xs"
           >
-            <Plus size={18} className="mr-2" />
-            Add Entry
+            <Plus size={14} strokeWidth={2} />
+            Add
           </Button>
         </div>
 
-        {/* Entries List */}
         {entries.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen size={32} className="text-blue-600" />
+          <Card className="border border-border rounded-2xl shadow-md">
+            <CardContent className="p-10 text-center">
+              <div className="bg-blue-100 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <BookOpen
+                  size={32}
+                  className="text-blue-600"
+                  strokeWidth={1.6}
+                />
               </div>
-              <h3 className="text-lg mb-2">Start Reflection</h3>
-              <p className="text-gray-600 mb-4">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Start reflection
+              </h3>
+              <p className="text-muted-foreground text-sm mb-4">
                 Start documenting your journey
               </p>
               <Button
-                onClick={() => setIsDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                onClick={openNewEntry}
+                className="rounded-xl bg-blue-600 hover:bg-blue-700"
               >
-                <Plus size={20} className="mr-2" />
-                New Entry
+                <Plus size={18} className="mr-2" strokeWidth={1.8} />
+                Add entry
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {entries.map((entry) => (
-              <Card key={entry.id} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <h3 className="text-lg mb-1">{entry.title}</h3>
-                      <div className="flex items-center text-xs text-gray-500 mb-2">
-                        <Calendar size={14} className="mr-1" />
-                        {new Date(entry.date).toLocaleDateString()}
-                        {entry.mood && (
-                          <span className="ml-3 bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                            {entry.mood}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(entry.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 size={18} />
-                    </Button>
-                  </div>
-                  <div
-                    className={`text-gray-700 ${expandedEntry === entry.id ? "" : "line-clamp-6"}`}
-                  >
-                    {/* Result + Mood */}
-                    <div className="mb-3">
-                      <div className="text-sm">
-                        <span className="font-semibold">Result:</span>{" "}
-                        <span>{entry.result || "—"}</span>
-                      </div>
-                      {entry.mood && (
-                        <div className="text-sm">
-                          <span className="font-semibold">Mood:</span>{" "}
-                          <span>{entry.mood}</span>
-                        </div>
-                      )}
-                    </div>
+          <div className="space-y-3">
+            {entries.map((entry) => {
+              const isExpanded = expandedEntry === entry.id;
 
-                    {/* Guided questions */}
-                    <div className="space-y-3 text-sm">
+              return (
+                <Card
+                  key={entry.id}
+                  className="overflow-hidden border border-border rounded-xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
+                >
+                  <CardContent className="p-4">
+                    {!isExpanded ? (
+                      <div className="flex items-start gap-3">
+                        <div className="bg-blue-100 text-blue-600 p-2.5 rounded-lg flex-shrink-0">
+                          <BookOpen size={20} strokeWidth={1.6} />
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-base font-semibold text-foreground">
+                              {entry.title}
+                            </h3>
+                            <ConfirmDeleteButton
+                                onConfirm={() => handleDelete(entry.id)}
+                                title="Delete journal entry?"
+                                description="This journal entry will be permanently removed and cannot be recovered."
+                                className="text-destructive hover:bg-destructive/10 -mt-1 rounded-lg h-8 w-8 p-0"
+                                iconOnly
+                              />
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Calendar
+                                size={12}
+                                className="mr-1"
+                                strokeWidth={1.6}
+                              />
+                              {new Date(entry.date).toLocaleDateString()}
+                            </div>
+
+                            {entry.mood && (
+                              <span className="text-xs font-medium px-2 py-1 rounded-md bg-blue-100 text-blue-700">
+                                {entry.mood}
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-sm text-muted-foreground mb-2">
+                            <span className="font-medium text-blue-600">
+                              Result:
+                            </span>{" "}
+                            {entry.result}
+                          </p>
+
+                          <p className="text-muted-foreground text-sm line-clamp-2">
+                            {getPreview(entry)}
+                          </p>
+
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto text-blue-600 mt-2"
+                            onClick={() => setExpandedEntry(entry.id)}
+                          >
+                            Read more
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
                       <div>
-                        <div className="font-semibold">What went well?</div>
-                        <div className="text-gray-700 whitespace-pre-wrap">
-                          {entry.wentWell || "—"}
-                        </div>
-                      </div>
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="bg-blue-100 text-blue-600 p-2.5 rounded-lg flex-shrink-0">
+                            <BookOpen size={20} strokeWidth={1.6} />
+                          </div>
 
-                      <div>
-                        <div className="font-semibold">What went poorly?</div>
-                        <div className="text-gray-700 whitespace-pre-wrap">
-                          {entry.wentPoorly || "—"}
-                        </div>
-                      </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="text-base font-semibold text-foreground">
+                                {entry.title}
+                              </h3>
+                              <ConfirmDeleteButton
+                                onConfirm={() => handleDelete(entry.id)}
+                                title="Delete journal entry?"
+                                description="This journal entry will be permanently removed and cannot be recovered."
+                                className="text-destructive hover:bg-destructive/10 -mt-1 rounded-lg h-8 w-8 p-0"
+                                iconOnly
+                              />
+                            </div>
 
-                      <div>
-                        <div className="font-semibold">
-                          Were the conditions optimal?
-                        </div>
-                        <div className="text-gray-700 whitespace-pre-wrap">
-                          {entry.conditions || "—"}
-                        </div>
-                      </div>
+                            <div className="flex items-center gap-2 flex-wrap mb-3">
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <Calendar
+                                  size={12}
+                                  className="mr-1"
+                                  strokeWidth={1.6}
+                                />
+                                {new Date(entry.date).toLocaleDateString()}
+                              </div>
 
-                      <div>
-                        <div className="font-semibold">
-                          What needs improvement?
-                        </div>
-                        <div className="text-gray-700 whitespace-pre-wrap">
-                          {entry.improvement || "—"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                              {entry.mood && (
+                                <span className="text-xs font-medium px-2 py-1 rounded-md bg-blue-100 text-blue-700">
+                                  {entry.mood}
+                                </span>
+                              )}
+                            </div>
 
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto text-blue-600 mt-2"
-                    onClick={() =>
-                      setExpandedEntry(
-                        expandedEntry === entry.id ? null : entry.id,
-                      )
-                    }
-                  >
-                    {expandedEntry === entry.id ? "Show less" : "Read more"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                            <p className="text-sm mb-3">
+                              <span className="font-medium text-blue-600">
+                                Result:
+                              </span>{" "}
+                              <span className="text-foreground">
+                                {entry.result}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              What went well?
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {entry.wentWell || "—"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              What went poorly?
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {entry.wentPoorly || "—"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              Were the conditions optimal?
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {entry.conditions || "—"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              What needs improvement?
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {entry.improvement || "—"}
+                            </p>
+                          </div>
+
+                          {entry.notes && (
+                            <div>
+                              <p className="text-sm font-medium text-foreground">
+                                Notes
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {entry.notes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto text-blue-600 mt-3"
+                          onClick={() => setExpandedEntry(null)}
+                        >
+                          Show less
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
 
-        {/* Add Entry Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
+        {/* Add Entry - bottom drawer */}
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
+            <DrawerHeader>
+              <DrawerTitle>
                 {step === 1 ? "New Entry" : "Reflection"}
-              </DialogTitle>
-              {/* Progress indicator */}
-              <div className="mt-2 flex gap-2">
-                <div
-                  className={`h-1 flex-1 rounded ${step === 1 ? "bg-blue-600" : "bg-blue-200"}`}
-                />
-                <div
-                  className={`h-1 flex-1 rounded ${step === 2 ? "bg-blue-600" : "bg-blue-200"}`}
-                />
-              </div>
-              <DialogDescription>
+              </DrawerTitle>
+              <DrawerDescription>
                 {step === 1
                   ? "Enter the details of your event."
                   : "Reflect on your performance."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+              </DrawerDescription>
+
+              <div className="mt-2 flex gap-2">
+                <div
+                  className={`h-1 flex-1 rounded ${
+                    step === 1 ? "bg-blue-600" : "bg-blue-200"
+                  }`}
+                />
+                <div
+                  className={`h-1 flex-1 rounded ${
+                    step === 2 ? "bg-blue-600" : "bg-blue-200"
+                  }`}
+                />
+              </div>
+            </DrawerHeader>
+
+            <div className="flex-1 overflow-y-auto space-y-4 px-4 pb-4">
               {step === 1 ? (
                 <>
                   <div className="space-y-2">
@@ -435,10 +534,11 @@ export function Journal() {
                 </>
               )}
             </div>
-            <DialogFooter className="flex items-center justify-between">
+
+            <DrawerFooter className="shrink-0 border-t border-border bg-background">
               {step === 1 ? (
                 <>
-                  <Button variant="outline" onClick={() => cancelNewEntry()}>
+                  <Button variant="outline" onClick={cancelNewEntry}>
                     Cancel
                   </Button>
                   <Button
@@ -462,9 +562,9 @@ export function Journal() {
                   </Button>
                 </>
               )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

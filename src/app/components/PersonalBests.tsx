@@ -4,13 +4,13 @@ import { Plus, Trophy, Trash2, Pencil, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "./ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerDescription,
+} from "./ui/drawer";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
 interface PersonalBestHistoryEntry {
   id: string;
@@ -104,7 +105,6 @@ function normalizeBests(raw: any[]): PersonalBest[] {
 
     if (!grouped[eventKey]) grouped[eventKey] = [];
 
-    // New format: already has history
     if (Array.isArray(item.history) && item.history.length > 0) {
       grouped[eventKey].push(
         ...item.history.map((entry: any) => ({
@@ -117,7 +117,6 @@ function normalizeBests(raw: any[]): PersonalBest[] {
         })),
       );
     } else {
-      // Old format: one top-level record = one history point
       grouped[eventKey].push({
         id: item.id,
         result: item.result,
@@ -130,7 +129,6 @@ function normalizeBests(raw: any[]): PersonalBest[] {
   }
 
   return Object.entries(grouped).map(([event, historyEntries]) => {
-    // remove accidental duplicates by id
     const uniqueHistory = historyEntries.filter(
       (entry, index, arr) => arr.findIndex((e) => e.id === entry.id) === index,
     );
@@ -157,7 +155,7 @@ function normalizeBests(raw: any[]): PersonalBest[] {
 export function PersonalBests() {
   const [bests, setBests] = useState<PersonalBest[]>([]);
   const [videos, setVideos] = useState<VideoEntry[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [selectedRecord, setSelectedRecord] = useState<PersonalBest | null>(
@@ -194,7 +192,7 @@ export function PersonalBests() {
     localStorage.setItem("athleteBests", JSON.stringify(updatedBests));
   };
 
-  const openAddDialog = () => {
+  const resetNewBest = () => {
     setEditingId(null);
     setNewBest({
       event: "",
@@ -204,10 +202,14 @@ export function PersonalBests() {
       linkedVideoId: "",
       date: new Date().toISOString().split("T")[0],
     });
-    setIsDialogOpen(true);
   };
 
-  const openEditDialog = (record: PersonalBest) => {
+  const openAddDrawer = () => {
+    resetNewBest();
+    setIsDrawerOpen(true);
+  };
+
+  const openEditDrawer = (record: PersonalBest) => {
     setEditingId(record.id);
     setNewBest({
       event: record.event,
@@ -217,10 +219,15 @@ export function PersonalBests() {
       linkedVideoId: "",
       date: record.date.split("T")[0],
     });
-    setIsDialogOpen(true);
+    setIsDrawerOpen(true);
   };
 
-  const openProgressDialog = (record: PersonalBest) => {
+  const closeBestDrawer = () => {
+    resetNewBest();
+    setIsDrawerOpen(false);
+  };
+
+  const openProgressDrawer = (record: PersonalBest) => {
     setSelectedRecord(record);
     setIsProgressOpen(true);
   };
@@ -257,8 +264,7 @@ export function PersonalBests() {
       );
 
       saveBests(updated);
-      setIsDialogOpen(false);
-      setEditingId(null);
+      closeBestDrawer();
       return;
     }
 
@@ -287,7 +293,7 @@ export function PersonalBests() {
       );
 
       saveBests(updated);
-      setIsDialogOpen(false);
+      closeBestDrawer();
       return;
     }
 
@@ -303,8 +309,7 @@ export function PersonalBests() {
     };
 
     saveBests([best, ...bests]);
-    setIsDialogOpen(false);
-    setEditingId(null);
+    closeBestDrawer();
   };
 
   const handleDelete = (id: string) => {
@@ -413,7 +418,7 @@ export function PersonalBests() {
   const firstEntry = selectedEntries.length > 0 ? selectedEntries[0] : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-4 pb-28">
       <div className="max-w-md mx-auto">
         <div className="flex justify-between items-center mb-5 pt-4">
           <div>
@@ -427,7 +432,7 @@ export function PersonalBests() {
 
           <div className="flex flex-col items-center">
             <Button
-              onClick={openAddDialog}
+              onClick={openAddDrawer}
               className="bg-orange-600 hover:bg-orange-700 rounded-full h-9 px-3 flex items-center gap-1 text-xs"
             >
               <Plus size={14} strokeWidth={2} />
@@ -454,7 +459,7 @@ export function PersonalBests() {
                   Track your personal bests over time
                 </p>
                 <Button
-                  onClick={openAddDialog}
+                  onClick={openAddDrawer}
                   className="bg-orange-600 hover:bg-orange-700 rounded-xl"
                 >
                   <Plus size={18} className="mr-2" strokeWidth={1.8} />
@@ -475,97 +480,93 @@ export function PersonalBests() {
                   key={record.id}
                   className="overflow-hidden border border-border rounded-xl shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
                 >
-                  <CardContent className="p-2">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="bg-orange-100 text-orange-600 p-2 rounded-lg flex-shrink-0 mt-0.5 self-start">
-                          <Trophy size={18} strokeWidth={1.7} />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-foreground truncate">
-                            {record.event}
-                          </h3>
-
-                          <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
-                            <span className="text-lg font-semibold text-orange-600 tabular-nums">
-                              {record.result}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              {record.unit}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(record.date).toLocaleDateString()}
-                            </span>
-                          </div>
-
-                          {record.notes && (
-                            <p className="text-xs text-muted-foreground mt-1 truncate">
-                              {record.notes}
-                            </p>
-                          )}
-
-                          {linkedVideo && (
-                            <Link
-                              to={`/videos/${linkedVideo.id}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <p className="text-xs text-blue-600 mt-1 truncate hover:underline">
-                                Linked video: {linkedVideo.title}
-                              </p>
-                            </Link>
-                          )}
-                        </div>
+                  <CardContent className="p-2.5">
+                    <div className="flex items-start gap-2.5">
+                      <div className="bg-orange-100 text-orange-600 p-2 rounded-lg flex-shrink-0 self-start">
+                        <Trophy size={16} strokeWidth={1.7} />
                       </div>
 
-                      <div className="grid grid-cols-[4fr_1fr] gap-2">
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditDialog(record);
-                            }}
-                            className="w-full rounded-xl border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                          >
-                            <Pencil
-                              size={16}
-                              className="mr-1"
-                              strokeWidth={1.6}
-                            />
-                            Log Result
-                          </Button>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[13px] font-semibold text-foreground truncate leading-tight">
+                          {record.event}
+                        </h3>
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openProgressDialog(record);
-                            }}
-                            className="w-full rounded-xl border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
-                          >
-                            <TrendingUp
-                              size={14}
-                              className="mr-1"
-                              strokeWidth={1.8}
-                            />
-                            View Progress
-                          </Button>
+                        <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                          <span className="text-[15px] font-semibold text-orange-600 tabular-nums leading-none">
+                            {record.result}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {record.unit}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {new Date(record.date).toLocaleDateString()}
+                          </span>
                         </div>
 
+                        {(record.notes || linkedVideo) && (
+                          <div className="mt-0.5 space-y-0.5">
+                            {record.notes && (
+                              <p className="text-[11px] text-muted-foreground truncate leading-tight">
+                                {record.notes}
+                              </p>
+                            )}
+
+                            {linkedVideo && (
+                              <Link
+                                to={`/videos/${linkedVideo.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <p className="text-[11px] text-blue-600 truncate hover:underline leading-tight">
+                                  Video: {linkedVideo.title}
+                                </p>
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-1 flex-shrink-0 w-[58px]">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(record.id);
+                            openEditDrawer(record);
                           }}
-                          className="h-full min-h-[76px] w-full rounded-xl text-destructive hover:bg-destructive/10 p-0"
+                          className="h-6 rounded-md border-gray-200 px-1 text-[10px] text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                         >
-                          <Trash2 size={18} strokeWidth={1.6} />
+                          <Pencil
+                            size={10}
+                            className="mr-1"
+                            strokeWidth={1.8}
+                          />
+                          Log
                         </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openProgressDrawer(record);
+                          }}
+                          className="h-6 rounded-md border-orange-200 px-1 text-[10px] text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                        >
+                          <TrendingUp
+                            size={10}
+                            className="mr-1"
+                            strokeWidth={1.8}
+                          />
+                          View
+                        </Button>
+
+                        <ConfirmDeleteButton
+                          onConfirm={() => handleDelete(record.id)}
+                          title="Delete personal best?"
+                          description="This personal best and its history will be permanently removed."
+                          className="h-6 rounded-md text-destructive hover:bg-destructive/10 p-0"
+                          iconOnly
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -575,20 +576,21 @@ export function PersonalBests() {
           </div>
         )}
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
+        {/* Add / Log PB Drawer */}
+        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <DrawerContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
+            <DrawerHeader>
+              <DrawerTitle>
                 {editingId ? "Log New Personal Best" : "Add Personal Best"}
-              </DialogTitle>
-              <DialogDescription>
+              </DrawerTitle>
+              <DrawerDescription>
                 {editingId
                   ? "Log a new result for this event. It will be added to your progress history."
                   : "Enter your personal best details below."}
-              </DialogDescription>
-            </DialogHeader>
+              </DrawerDescription>
+            </DrawerHeader>
 
-            <div className="space-y-4 py-4">
+            <div className="flex-1 overflow-y-auto space-y-4 px-4 pb-4">
               {editingId ? (
                 <div className="pb-2 border-b border-gray-200">
                   <h3 className="text-xl font-semibold text-orange-600 tracking-tight">
@@ -711,8 +713,8 @@ export function PersonalBests() {
               </div>
             </div>
 
-            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <DrawerFooter className="shrink-0 border-t border-border bg-background">
+              <Button variant="outline" onClick={closeBestDrawer}>
                 Cancel
               </Button>
               <Button
@@ -722,246 +724,246 @@ export function PersonalBests() {
               >
                 {editingId ? "Update PB" : "Add Record"}
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
 
-        <Dialog open={isProgressOpen} onOpenChange={setIsProgressOpen}>
-          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedRecord?.event || "Progress"}</DialogTitle>
-              <DialogDescription>
+        {/* Progress Drawer */}
+        <Drawer open={isProgressOpen} onOpenChange={setIsProgressOpen}>
+          <DrawerContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
+            <DrawerHeader>
+              <DrawerTitle>{selectedRecord?.event || "Progress"}</DrawerTitle>
+              <DrawerDescription>
                 Track how your results have changed over time.
-              </DialogDescription>
-            </DialogHeader>
+              </DrawerDescription>
+            </DrawerHeader>
 
-            {selectedEntries.length === 0 ? (
-              <div className="py-6 text-sm text-gray-500">
-                No data available for this event yet.
-              </div>
-            ) : (
-              <div className="space-y-4 py-2">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <TrendingUp size={18} className="text-orange-600" />
-                      <h3 className="text-sm font-semibold">
-                        Performance Trend
-                      </h3>
-                    </div>
+            <div className="flex-1 overflow-y-auto px-4 pb-4">
+              {selectedEntries.length === 0 ? (
+                <div className="py-6 text-sm text-gray-500">
+                  No data available for this event yet.
+                </div>
+              ) : (
+                <div className="space-y-4 py-2">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <TrendingUp size={18} className="text-orange-600" />
+                        <h3 className="text-sm font-semibold">
+                          Performance Trend
+                        </h3>
+                      </div>
 
-                    <div className="w-full overflow-hidden">
-                      <svg
-                        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                        className="w-full h-52"
-                      >
-                        <line
-                          x1={padding}
-                          y1={padding}
-                          x2={padding}
-                          y2={chartHeight - padding}
-                          stroke="#d1d5db"
-                          strokeWidth="1"
-                        />
-                        <line
-                          x1={padding}
-                          y1={chartHeight - padding}
-                          x2={chartWidth - padding}
-                          y2={chartHeight - padding}
-                          stroke="#d1d5db"
-                          strokeWidth="1"
-                        />
-
-                        {pointsString && (
-                          <polyline
-                            fill="none"
-                            stroke="#ea580c"
-                            strokeWidth="3"
-                            points={pointsString}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                      <div className="w-full overflow-hidden">
+                        <svg
+                          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                          className="w-full h-52"
+                        >
+                          <line
+                            x1={padding}
+                            y1={padding}
+                            x2={padding}
+                            y2={chartHeight - padding}
+                            stroke="#d1d5db"
+                            strokeWidth="1"
                           />
-                        )}
+                          <line
+                            x1={padding}
+                            y1={chartHeight - padding}
+                            x2={chartWidth - padding}
+                            y2={chartHeight - padding}
+                            stroke="#d1d5db"
+                            strokeWidth="1"
+                          />
 
-                        {chartPoints.map((point) => {
-                          const labelWidth = Math.max(
-                            34,
-                            point.label.length * 7 + 10,
-                          );
-                          const labelHeight = 20;
-                          const labelX = point.x - labelWidth / 2;
-                          const labelY = point.y - 30;
-
-                          return (
-                            <g key={point.id}>
-                              {/* Label bubble */}
-                              <rect
-                                x={labelX}
-                                y={labelY}
-                                width={labelWidth}
-                                height={labelHeight}
-                                rx="10"
-                                fill="white"
-                                stroke="#ea580c"
-                                strokeWidth="1"
-                              />
-                              <text
-                                x={point.x}
-                                y={labelY + 13}
-                                textAnchor="middle"
-                                fontSize="10"
-                                fontWeight="500"
-                                fill="#ea580c"
-                              >
-                                {point.label}
-                              </text>
-
-                              {/* Small connector line */}
-                              <line
-                                x1={point.x}
-                                y1={labelY + labelHeight}
-                                x2={point.x}
-                                y2={point.y - 6}
-                                stroke="#ea580c"
-                                strokeWidth="1"
-                              />
-
-                              {/* Point */}
-                              <circle
-                                cx={point.x}
-                                cy={point.y}
-                                r="4"
-                                fill="#ea580c"
-                              />
-                            </g>
-                          );
-                        })}
-
-                        <text
-                          x={padding - 4}
-                          y={padding + 4}
-                          textAnchor="end"
-                          fontSize="10"
-                          fill="#6b7280"
-                        >
-                          {yMaxLabel}
-                        </text>
-
-                        <text
-                          x={padding - 4}
-                          y={chartHeight - padding + 4}
-                          textAnchor="end"
-                          fontSize="10"
-                          fill="#6b7280"
-                        >
-                          {yMinLabel}
-                        </text>
-
-                        <text
-                          x={padding}
-                          y={chartHeight - 8}
-                          textAnchor="start"
-                          fontSize="10"
-                          fill="#6b7280"
-                        >
-                          0
-                        </text>
-
-                        <text
-                          x={chartWidth - padding}
-                          y={chartHeight - 8}
-                          textAnchor="end"
-                          fontSize="10"
-                          fill="#6b7280"
-                        >
-                          {selectedEntries.length - 1}
-                        </text>
-                      </svg>
-                    </div>
-
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>
-                        First:{" "}
-                        {firstEntry
-                          ? new Date(firstEntry.date).toLocaleDateString()
-                          : "—"}
-                      </span>
-                      <span>
-                        Latest:{" "}
-                        {latestEntry
-                          ? new Date(latestEntry.date).toLocaleDateString()
-                          : "—"}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4 space-y-2">
-                    <h3 className="text-sm font-semibold">Summary</h3>
-                    <div className="text-sm text-gray-700">
-                      <p>
-                        <span className="font-medium">First entry:</span>{" "}
-                        {firstEntry
-                          ? `${firstEntry.result} ${firstEntry.unit}`
-                          : "—"}
-                      </p>
-                      <p>
-                        <span className="font-medium">Latest entry:</span>{" "}
-                        {latestEntry
-                          ? `${latestEntry.result} ${latestEntry.unit}`
-                          : "—"}
-                      </p>
-                      <p>
-                        <span className="font-medium">Total entries:</span>{" "}
-                        {selectedEntries.length}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <h3 className="text-sm font-semibold mb-3">History</h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {selectedEntries.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className="flex items-center justify-between text-sm border-b last:border-b-0 pb-2 last:pb-0"
-                        >
-                          <div>
-                            <p className="font-medium">
-                              {entry.result} {entry.unit}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(entry.date).toLocaleDateString()}
-                            </p>
-                          </div>
-                          {entry.linkedVideoId && (
-                            <Link to={`/videos/${entry.linkedVideoId}`}>
-                              <p className="text-xs text-blue-600 hover:underline">
-                                Open video
-                              </p>
-                            </Link>
+                          {pointsString && (
+                            <polyline
+                              fill="none"
+                              stroke="#ea580c"
+                              strokeWidth="3"
+                              points={pointsString}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
                           )}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
 
-            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+                          {chartPoints.map((point) => {
+                            const labelWidth = Math.max(
+                              34,
+                              point.label.length * 7 + 10,
+                            );
+                            const labelHeight = 20;
+                            const labelX = point.x - labelWidth / 2;
+                            const labelY = point.y - 30;
+
+                            return (
+                              <g key={point.id}>
+                                <rect
+                                  x={labelX}
+                                  y={labelY}
+                                  width={labelWidth}
+                                  height={labelHeight}
+                                  rx="10"
+                                  fill="white"
+                                  stroke="#ea580c"
+                                  strokeWidth="1"
+                                />
+                                <text
+                                  x={point.x}
+                                  y={labelY + 13}
+                                  textAnchor="middle"
+                                  fontSize="10"
+                                  fontWeight="500"
+                                  fill="#ea580c"
+                                >
+                                  {point.label}
+                                </text>
+
+                                <line
+                                  x1={point.x}
+                                  y1={labelY + labelHeight}
+                                  x2={point.x}
+                                  y2={point.y - 6}
+                                  stroke="#ea580c"
+                                  strokeWidth="1"
+                                />
+
+                                <circle
+                                  cx={point.x}
+                                  cy={point.y}
+                                  r="4"
+                                  fill="#ea580c"
+                                />
+                              </g>
+                            );
+                          })}
+
+                          <text
+                            x={padding - 4}
+                            y={padding + 4}
+                            textAnchor="end"
+                            fontSize="10"
+                            fill="#6b7280"
+                          >
+                            {yMaxLabel}
+                          </text>
+
+                          <text
+                            x={padding - 4}
+                            y={chartHeight - padding + 4}
+                            textAnchor="end"
+                            fontSize="10"
+                            fill="#6b7280"
+                          >
+                            {yMinLabel}
+                          </text>
+
+                          <text
+                            x={padding}
+                            y={chartHeight - 8}
+                            textAnchor="start"
+                            fontSize="10"
+                            fill="#6b7280"
+                          >
+                            0
+                          </text>
+
+                          <text
+                            x={chartWidth - padding}
+                            y={chartHeight - 8}
+                            textAnchor="end"
+                            fontSize="10"
+                            fill="#6b7280"
+                          >
+                            {selectedEntries.length - 1}
+                          </text>
+                        </svg>
+                      </div>
+
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>
+                          First:{" "}
+                          {firstEntry
+                            ? new Date(firstEntry.date).toLocaleDateString()
+                            : "—"}
+                        </span>
+                        <span>
+                          Latest:{" "}
+                          {latestEntry
+                            ? new Date(latestEntry.date).toLocaleDateString()
+                            : "—"}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4 space-y-2">
+                      <h3 className="text-sm font-semibold">Summary</h3>
+                      <div className="text-sm text-gray-700">
+                        <p>
+                          <span className="font-medium">First entry:</span>{" "}
+                          {firstEntry
+                            ? `${firstEntry.result} ${firstEntry.unit}`
+                            : "—"}
+                        </p>
+                        <p>
+                          <span className="font-medium">Latest entry:</span>{" "}
+                          {latestEntry
+                            ? `${latestEntry.result} ${latestEntry.unit}`
+                            : "—"}
+                        </p>
+                        <p>
+                          <span className="font-medium">Total entries:</span>{" "}
+                          {selectedEntries.length}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="text-sm font-semibold mb-3">History</h3>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {selectedEntries.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="flex items-center justify-between text-sm border-b last:border-b-0 pb-2 last:pb-0"
+                          >
+                            <div>
+                              <p className="font-medium">
+                                {entry.result} {entry.unit}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(entry.date).toLocaleDateString()}
+                              </p>
+                            </div>
+                            {entry.linkedVideoId && (
+                              <Link to={`/videos/${entry.linkedVideoId}`}>
+                                <p className="text-xs text-blue-600 hover:underline">
+                                  Open video
+                                </p>
+                              </Link>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+
+            <DrawerFooter className="shrink-0 border-t border-border bg-background">
               <Button
                 variant="outline"
                 onClick={() => setIsProgressOpen(false)}
               >
                 Close
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

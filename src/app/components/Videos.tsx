@@ -3,17 +3,18 @@ import { Plus, Play, Trash2, Calendar, Video, Columns2, X } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "./ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerDescription,
+} from "./ui/drawer";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Link, useNavigate, useLocation } from "react-router";
+import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
 interface VideoEntry {
   id: string;
@@ -43,8 +44,6 @@ export function Videos() {
     if (startCompare) {
       setCompareMode(true);
       setSelected([]);
-
-      // optional: clear state so it doesn't re-trigger on back/refresh
       navigate("/videos", { replace: true });
     }
   }, [location.state, navigate]);
@@ -54,8 +53,7 @@ export function Videos() {
 
     if (stored) {
       setVideos(JSON.parse(stored));
-    } else {
-      // 👇 Hardcoded demo videos
+    } /**else {
       const demoVideos: VideoEntry[] = [
         {
           id: "1",
@@ -101,7 +99,7 @@ export function Videos() {
 
       setVideos(demoVideos);
       localStorage.setItem("athleteVideos", JSON.stringify(demoVideos));
-    }
+    }*/
   }, []);
 
   const saveVideos = (updatedVideos: VideoEntry[]) => {
@@ -128,12 +126,13 @@ export function Videos() {
 
   const handleDelete = (id: string) => {
     saveVideos(videos.filter((v) => v.id !== id));
+    setSelected((prev) => prev.filter((x) => x !== id));
   };
 
   const toggleCompareMode = () => {
     setCompareMode((prev) => {
       const next = !prev;
-      if (!next) setSelected([]); // leaving compare mode clears selection
+      if (!next) setSelected([]);
       return next;
     });
   };
@@ -141,7 +140,7 @@ export function Videos() {
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= 2) return prev; // limit to 2
+      if (prev.length >= 2) return prev;
       return [...prev, id];
     });
   };
@@ -153,58 +152,69 @@ export function Videos() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-5 pb-28">
       <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 pt-6">
+        <div className="flex justify-between items-center mb-5 pt-4">
           <div>
-            <h1 className="text-3xl mb-1">Videos</h1>
-            <p className="text-gray-600">
-              {videos.length} video
-              {videos.length !== 1 ? "s" : ""}
+            <h1 className="text-xl font-semibold text-foreground mb-0.5">
+              Videos
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {videos.length} video{videos.length !== 1 ? "s" : ""}
             </p>
           </div>
+
           <div className="flex gap-2">
             <Button
               onClick={toggleCompareMode}
-              variant="outline"
-              className={`border-gray-500 flex items-center gap-2 ${
-    compareMode ? "text-gray-700 bg-gray-200 border-gray-500" : "text-gray-700"
-  }`}
-              size="lg"
+              variant={compareMode ? "default" : "outline"}
+              size="sm"
+              className={`rounded-xl ${
+                compareMode
+                  ? "bg-violet-600 hover:bg-violet-700 text-white"
+                  : "border-border/60"
+              }`}
             >
-              {compareMode ? <X size={20} /> : <Columns2 size={20} />}
-              Compare Videos
+              {compareMode ? (
+                <X size={16} strokeWidth={1.8} />
+              ) : (
+                <Columns2 size={16} strokeWidth={1.8} />
+              )}
+              compare
             </Button>
 
             <Button
               onClick={() => setIsDialogOpen(true)}
-              className="bg-purple-600 hover:bg-purple-700"
               size="lg"
+              className="rounded-xl bg-violet-600 hover:bg-violet-700"
             >
-              <Plus size={20}className="mr-2" />
-            Add Entry
+              <Plus size={20} strokeWidth={1.8} />
             </Button>
           </div>
         </div>
 
-        {/* Videos Grid */}
         {videos.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Video size={32} className="text-purple-600" />
+          <Card className="border border-border rounded-2xl shadow-md">
+            <CardContent className="p-10 text-center">
+              <div className="bg-violet-100 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Video
+                  size={32}
+                  className="text-violet-600"
+                  strokeWidth={1.6}
+                />
               </div>
-              <h3 className="text-lg mb-2">No videos yet</h3>
-              <p className="text-gray-600 mb-4">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                No videos yet
+              </h3>
+              <p className="text-muted-foreground text-sm mb-4">
                 Upload your first training video
               </p>
               <Button
                 onClick={() => setIsDialogOpen(true)}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="rounded-xl bg-violet-600 hover:bg-violet-700"
               >
-                <Plus size={20} className="mr-2" />
-                Add Video
+                <Plus size={18} className="mr-2" strokeWidth={1.8} />
+                Add video
               </Button>
             </CardContent>
           </Card>
@@ -216,50 +226,59 @@ export function Videos() {
               const Tile = (
                 <div className="group">
                   <Card
-                    className={`overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow ${
-                      compareMode && isSelected ? "ring-4 ring-purple-600" : ""
+                    className={`overflow-hidden border border-border rounded-xl shadow-sm hover:shadow-md hover:border-violet-200 transition-all ${
+                      compareMode && isSelected
+                        ? "ring-2 ring-violet-500 border-violet-300"
+                        : ""
                     }`}
                   >
                     <CardContent className="p-0">
-                      {/* Thumbnail */}
-                      <div className="relative aspect-square bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
-                        <Play size={32} className="text-purple-600" />
+                      <div className="relative aspect-square bg-violet-100 flex items-center justify-center">
+                        <Play
+                          size={28}
+                          className="text-violet-600"
+                          strokeWidth={1.8}
+                        />
 
-                        {/* subtle overlay */}
-                        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                        {/* Selected badge */}
                         {compareMode && isSelected && (
-                          <div className="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                          <div className="absolute top-1.5 left-1.5 bg-violet-600 text-white text-[10px] px-1.5 py-0.5 rounded-md">
                             Selected
                           </div>
                         )}
 
-                        {/* Delete button overlay */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDelete(video.id);
-                          }}
-                          className="absolute top-1.5 right-1.5 h-8 w-8 p-0 rounded-full bg-white/80 hover:bg-white text-red-600 hover:text-red-700 shadow"
+                        <ConfirmDeleteButton
+                          onConfirm={() => handleDelete(video.id)}
+                          title="Delete video?"
+                          description="This video will be permanently removed and cannot be recovered."
                         >
-                          <Trash2 size={16} />
-                        </Button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            className="absolute top-1.5 right-1.5 h-7 w-7 p-0 rounded-lg bg-white/85 hover:bg-white text-destructive hover:text-destructive shadow-sm inline-flex items-center justify-center"
+                          >
+                            <Trash2 size={14} strokeWidth={1.8} />
+                          </button>
+                        </ConfirmDeleteButton>
                       </div>
 
-                      {/* Text under thumbnail */}
-                      <div className="px-2.5 py-2">
-                        <p className="text-sm font-medium leading-snug line-clamp-1">
+                      <div className="px-2 py-2">
+                        <p className="text-[12px] font-semibold text-foreground leading-tight line-clamp-1">
                           {video.title}
                         </p>
-                        <p className="text-xs text-gray-600 leading-snug line-clamp-1">
+
+                        <p className="text-[11px] text-muted-foreground leading-tight line-clamp-1 mt-0.5">
                           {video.description ? video.description : "—"}
                         </p>
-                        <div className="mt-1 flex items-center text-[11px] text-gray-500">
-                          <Calendar size={12} className="mr-1" />
+
+                        <div className="mt-1 flex items-center text-[10px] text-muted-foreground">
+                          <Calendar
+                            size={10}
+                            className="mr-1"
+                            strokeWidth={1.8}
+                          />
                           {new Date(video.date).toLocaleDateString()}
                         </div>
                       </div>
@@ -268,7 +287,6 @@ export function Videos() {
                 </div>
               );
 
-              // Normal mode: link to details
               if (!compareMode) {
                 return (
                   <Link to={`/videos/${video.id}`} key={video.id}>
@@ -277,7 +295,6 @@ export function Videos() {
                 );
               }
 
-              // Compare mode: click selects
               return (
                 <div
                   key={video.id}
@@ -290,28 +307,30 @@ export function Videos() {
             })}
           </div>
         )}
+
         {compareMode && (
           <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-20">
             <Button
               onClick={goToCompare}
               disabled={selected.length !== 2}
-              className="bg-purple-600 hover:bg-purple-700 shadow-lg px-6"
+              className="bg-violet-600 hover:bg-violet-700 shadow-lg px-6 rounded-xl"
             >
               Compare ({selected.length}/2)
             </Button>
           </div>
         )}
 
-        {/* Add Video Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Video</DialogTitle>
-              <DialogDescription>
+        {/* Add Video - bottom drawer */}
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent className="max-w-md mx-auto">
+            <DrawerHeader>
+              <DrawerTitle>Add New Video</DrawerTitle>
+              <DrawerDescription>
                 Add a new video to your collection.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <div className="space-y-4 px-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
@@ -326,6 +345,7 @@ export function Videos() {
                   }
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -341,6 +361,7 @@ export function Videos() {
                   rows={3}
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="videoUrl">Video URL</Label>
                 <Input
@@ -354,26 +375,27 @@ export function Videos() {
                     })
                   }
                 />
-                <p className="text-xs text-gray-500">
-                  Note: This demo stores video URLs. In production, you'd upload
-                  actual video files.
+                <p className="text-xs text-muted-foreground">
+                  Note: This demo stores video URLs. In production, you would
+                  upload actual video files.
                 </p>
               </div>
             </div>
-            <DialogFooter>
+
+            <DrawerFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
                 onClick={handleAddVideo}
                 disabled={!newVideo.title || !newVideo.videoUrl}
-                className="bg-purple-600 hover:bg-purple-700"
+                className="rounded-xl bg-violet-600 hover:bg-violet-700"
               >
-                Add Video
+                Add video
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

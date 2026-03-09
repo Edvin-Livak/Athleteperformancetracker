@@ -1,7 +1,8 @@
+import { createRoot } from "react-dom/client";
+import App from "./app/App.tsx";
+import "./styles/index.css";
+import { seedDummyDataIfNeeded } from "./app/data/dummyData";
 
-  import { createRoot } from "react-dom/client";
-  import App from "./app/App.tsx";
-  import "./styles/index.css";
+seedDummyDataIfNeeded();
 
-  createRoot(document.getElementById("root")!).render(<App />);
-  
+createRoot(document.getElementById("root")!).render(<App />);

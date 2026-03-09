@@ -115,7 +115,7 @@ export function Home() {
                     Video learning
                   </h3>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Review performances and compare results
+                    Compare performances side-by-side 
                   </p>
 
                   <span className="mt-3 inline-flex w-fit px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium group-hover:opacity-95 transition-opacity">

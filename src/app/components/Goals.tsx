@@ -1,12 +1,33 @@
 import { useState, useEffect } from "react";
-import { Plus, Target, CheckCircle2, Circle, Trash2, Calendar } from "lucide-react";
+import {
+  Plus,
+  Target,
+  CheckCircle2,
+  Circle,
+  Trash2,
+  Calendar,
+} from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerDescription,
+} from "./ui/drawer";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
 interface Goal {
   id: string;
@@ -20,7 +41,7 @@ interface Goal {
 
 export function Goals() {
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
   const [newGoal, setNewGoal] = useState({
     title: "",
@@ -41,6 +62,25 @@ export function Goals() {
     localStorage.setItem("athleteGoals", JSON.stringify(updatedGoals));
   };
 
+  const resetNewGoal = () => {
+    setNewGoal({
+      title: "",
+      description: "",
+      targetDate: "",
+      category: "performance",
+    });
+  };
+
+  const openNewGoal = () => {
+    resetNewGoal();
+    setIsDrawerOpen(true);
+  };
+
+  const cancelNewGoal = () => {
+    resetNewGoal();
+    setIsDrawerOpen(false);
+  };
+
   const handleAddGoal = () => {
     if (!newGoal.title || !newGoal.targetDate) return;
 
@@ -55,15 +95,14 @@ export function Goals() {
     };
 
     saveGoals([goal, ...goals]);
-    setNewGoal({ title: "", description: "", targetDate: "", category: "performance" });
-    setIsDialogOpen(false);
+    cancelNewGoal();
   };
 
   const toggleComplete = (id: string) => {
     saveGoals(
       goals.map((goal) =>
-        goal.id === id ? { ...goal, completed: !goal.completed } : goal
-      )
+        goal.id === id ? { ...goal, completed: !goal.completed } : goal,
+      ),
     );
   };
 
@@ -92,33 +131,37 @@ export function Goals() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-4 pb-28">
       <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 pt-6">
+        <div className="flex justify-between items-center mb-5 pt-4">
           <div>
-            <h1 className="text-3xl mb-1">Goals</h1>
-            <p className="text-gray-600">
+            <h1 className="text-xl font-semibold text-foreground mb-0.5">
+              Goals
+            </h1>
+            <p className="text-muted-foreground text-sm">
               {activeCount} active · {completedCount} completed
             </p>
           </div>
+
           <Button
-            onClick={() => setIsDialogOpen(true)}
-            className="bg-green-600 hover:bg-green-700"
-            size="lg"
+            onClick={openNewGoal}
+            className="bg-green-600 hover:bg-green-700 rounded-full h-9 px-3 flex items-center gap-1 text-xs"
           >
-            <Plus size={20} className="mr-2" />
-            Add Entry
+            <Plus size={14} strokeWidth={2} />
+            Add
           </Button>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-4">
           <Button
             variant={filter === "all" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("all")}
-            className={filter === "all" ? "bg-green-600" : ""}
+            className={
+              filter === "all"
+                ? "bg-green-600 hover:bg-green-700 rounded-full"
+                : "rounded-full border-border"
+            }
           >
             All
           </Button>
@@ -126,7 +169,11 @@ export function Goals() {
             variant={filter === "active" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("active")}
-            className={filter === "active" ? "bg-green-600" : ""}
+            className={
+              filter === "active"
+                ? "bg-green-600 hover:bg-green-700 rounded-full"
+                : "rounded-full border-border"
+            }
           >
             Active
           </Button>
@@ -134,100 +181,141 @@ export function Goals() {
             variant={filter === "completed" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("completed")}
-            className={filter === "completed" ? "bg-green-600" : ""}
+            className={
+              filter === "completed"
+                ? "bg-green-600 hover:bg-green-700 rounded-full"
+                : "rounded-full border-border"
+            }
           >
             Completed
           </Button>
         </div>
 
-        {/* Goals List */}
         {filteredGoals.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Target size={32} className="text-green-600" />
+          <Card className="border border-border rounded-2xl shadow-md">
+            <CardContent className="p-10 text-center">
+              <div className="bg-green-100 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Target
+                  size={32}
+                  className="text-green-600"
+                  strokeWidth={1.6}
+                />
               </div>
-              <h3 className="text-lg mb-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 {filter === "all" ? "No goals yet" : `No ${filter} goals`}
               </h3>
-              <p className="text-gray-600 mb-4">Set a goal and start your journey</p>
+              <p className="text-muted-foreground text-sm mb-4">
+                Set a goal and start your journey
+              </p>
               <Button
-                onClick={() => setIsDialogOpen(true)}
-                className="bg-green-600 hover:bg-green-700"
+                onClick={openNewGoal}
+                className="bg-green-600 hover:bg-green-700 rounded-xl"
               >
-                <Plus size={20} className="mr-2" />
-                New Goal
+                <Plus size={18} className="mr-2" strokeWidth={1.8} />
+                Add goal
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {filteredGoals.map((goal) => {
               const isOverdue =
                 !goal.completed && new Date(goal.targetDate) < new Date();
-              
+
               return (
                 <Card
                   key={goal.id}
-                  className={`overflow-hidden transition-colors ${
+                  className={`overflow-hidden border rounded-xl shadow-sm transition-all ${
                     goal.completed
-                    ? "bg-green-200 border-green-500"
-                    : "bg-white bordergray-200"
+                      ? "bg-green-50 border-green-200 hover:border-green-300"
+                      : "bg-card border-border hover:shadow-md hover:border-green-200"
                   }`}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
+                  <CardContent className="p-2.5">
+                    <div className="flex items-start gap-2.5">
                       <button
                         onClick={() => toggleComplete(goal.id)}
-                        className="mt-1 text-green-600 hover:text-green-700 transition-colors"
+                        className="flex-shrink-0 self-start rounded-lg p-1 transition-colors text-green-600 hover:text-green-700"
+                        aria-label={
+                          goal.completed
+                            ? "Mark as incomplete"
+                            : "Mark as complete"
+                        }
                       >
                         {goal.completed ? (
-                          <CheckCircle2 size={24} className="fill-current" />
+                          <CheckCircle2 size={18} className="fill-current" />
                         ) : (
-                          <Circle size={24} />
+                          <Circle size={18} />
                         )}
                       </button>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3
-                            className={`text-lg ${
-                              goal.completed ? "line-through" : ""
+
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className={`text-[13px] font-semibold text-foreground truncate leading-tight ${
+                            goal.completed ? "line-through opacity-70" : ""
+                          }`}
+                        >
+                          {goal.title}
+                        </h3>
+
+                        <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                          <span
+                            className={`text-[11px] ${
+                              isOverdue
+                                ? "text-red-600"
+                                : "text-muted-foreground"
                             }`}
                           >
-                            {goal.title}
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(goal.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 -mt-1"
-                          >
-                            <Trash2 size={18} />
-                          </Button>
-                        </div>
-                        {goal.description && (
-                          <p className="text-gray-600 text-sm mb-3">
-                            {goal.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 flex-wrap">
+                            {new Date(goal.targetDate).toLocaleDateString()}
+                            {isOverdue && " · overdue"}
+                          </span>
+
                           <span
-                            className={`text-xs px-2 py-1 rounded ${getCategoryColor(
-                              goal.category
+                            className={`text-[10px] px-1.5 py-0.5 rounded ${getCategoryColor(
+                              goal.category,
                             )}`}
                           >
                             {goal.category}
                           </span>
-                          <div
-                            className={`flex items-center text-xs ${
-                              isOverdue ? "text-red-600" : "text-gray-500"
+                        </div>
+
+                        {goal.description && (
+                          <p
+                            className={`text-[11px] text-muted-foreground truncate leading-tight mt-0.5 ${
+                              goal.completed ? "opacity-70" : ""
                             }`}
                           >
-                            <Calendar size={12} className="mr-1" />
-                            Target: {new Date(goal.targetDate).toLocaleDateString()}
-                            {isOverdue && " (overdue)"}
-                          </div>
+                            {goal.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-1 flex-shrink-0 w-[58px]">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleComplete(goal.id)}
+                          className={`h-6 rounded-md px-1 text-[10px] ${
+                            goal.completed
+                              ? "border-gray-200 text-gray-700 hover:bg-gray-50"
+                              : "border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
+                          }`}
+                        >
+                          {goal.completed ? "Undo" : "Done"}
+                        </Button>
+
+                        <div className="h-6 flex items-center justify-center text-[10px] text-muted-foreground rounded-md border border-border">
+                          <Calendar size={10} className="mr-1" />
+                          Date
                         </div>
+
+                        <ConfirmDeleteButton
+                          onConfirm={() => handleDelete(goal.id)}
+                          title="Delete goal?"
+                          description="This goal will be permanently removed."
+                          className="h-6 rounded-md text-destructive hover:bg-destructive/10 p-0"
+                          iconOnly
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -237,30 +325,35 @@ export function Goals() {
           </div>
         )}
 
-        {/* Add Goal Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Set New Goal</DialogTitle>
-              <DialogDescription>
-                Add a new goal to help you achieve your fitness objectives.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
+        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <DrawerContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
+            <DrawerHeader>
+              <DrawerTitle>Set New Goal</DrawerTitle>
+              <DrawerDescription>
+                Add a new goal to help guide your training.
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <div className="flex-1 overflow-y-auto space-y-4 px-4 pb-4">
               <div className="space-y-2">
                 <Label htmlFor="goal-title">Goal</Label>
                 <Input
                   id="goal-title"
                   placeholder="e.g., Run 5k under 20 minutes"
                   value={newGoal.title}
-                  onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                  onChange={(e) =>
+                    setNewGoal({ ...newGoal, title: e.target.value })
+                  }
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select
                   value={newGoal.category}
-                  onValueChange={(value) => setNewGoal({ ...newGoal, category: value })}
+                  onValueChange={(value) =>
+                    setNewGoal({ ...newGoal, category: value })
+                  }
                 >
                   <SelectTrigger id="category">
                     <SelectValue />
@@ -274,6 +367,7 @@ export function Goals() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="target-date">Target Date</Label>
                 <Input
@@ -285,6 +379,7 @@ export function Goals() {
                   }
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="goal-description">Description (optional)</Label>
                 <Textarea
@@ -298,8 +393,9 @@ export function Goals() {
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+
+            <DrawerFooter className="shrink-0 border-t border-border bg-background">
+              <Button variant="outline" onClick={cancelNewGoal}>
                 Cancel
               </Button>
               <Button
@@ -309,9 +405,9 @@ export function Goals() {
               >
                 Set Goal
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );

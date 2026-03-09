@@ -1,6 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, Calendar, User } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  Smartphone,
+  RotateCw,
+  Play,
+  Pause,
+  RotateCcw,
+  Bookmark,
+  X,
+} from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 
@@ -24,183 +34,353 @@ interface Comment {
 export function Compare() {
   const [videos, setVideos] = useState<VideoEntry[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  const [startMarkers, setStartMarkers] = useState<{
+    left: number;
+    right: number;
+  }>({
+    left: 0,
+    right: 0,
+  });
+
+  const leftVideoRef = useRef<HTMLVideoElement | null>(null);
+  const rightVideoRef = useRef<HTMLVideoElement | null>(null);
+  const isSyncingRef = useRef(false);
 
   useEffect(() => {
     const storedVideos: VideoEntry[] = JSON.parse(
-      localStorage.getItem("athleteVideos") || "[]"
+      localStorage.getItem("athleteVideos") || "[]",
     );
 
     const selectedIds: string[] = JSON.parse(
-      localStorage.getItem("compareVideos") || "[]"
+      localStorage.getItem("compareVideos") || "[]",
     );
 
     let selectedVideos = storedVideos.filter((v) => selectedIds.includes(v.id));
 
-    // ✅ Demo fallback: if user navigates here without selecting, pick first two
     if (selectedVideos.length !== 2 && storedVideos.length >= 2) {
       selectedVideos = storedVideos.slice(0, 2);
       localStorage.setItem(
         "compareVideos",
-        JSON.stringify([selectedVideos[0].id, selectedVideos[1].id])
+        JSON.stringify([selectedVideos[0].id, selectedVideos[1].id]),
       );
     }
 
     setVideos(selectedVideos);
 
     const storedComments: Comment[] = JSON.parse(
-      localStorage.getItem("videoComments") || "[]"
+      localStorage.getItem("videoComments") || "[]",
     );
     setComments(storedComments);
   }, []);
 
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+
+    return () => window.removeEventListener("resize", checkOrientation);
+  }, []);
+
   const commentsByVideoId = useMemo(() => {
     const map: Record<string, Comment[]> = {};
+
     for (const c of comments) {
       if (!map[c.videoId]) map[c.videoId] = [];
       map[c.videoId].push(c);
     }
-    // sort each list by time
+
     Object.values(map).forEach((list) =>
-      list.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      list.sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      ),
     );
+
     return map;
   }, [comments]);
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const tenths = Math.floor((seconds % 1) * 10);
+
+    if (mins > 0) {
+      return `${mins}:${String(secs).padStart(2, "0")}.${tenths}`;
+    }
+
+    return `${secs}.${tenths}s`;
+  };
+
+  const formatShortDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const getResultFromTitle = (title: string) => {
+    const match = title.match(/\(([^)]+)\)/);
+    return match ? `(${match[1]})` : "";
+  };
+
+  const getMainTitle = (title: string) => {
+    return title.replace(/\s*\([^)]+\)\s*/g, "").trim();
+  };
+
+  const applyStartMarkers = () => {
+    const left = leftVideoRef.current;
+    const right = rightVideoRef.current;
+
+    if (!left || !right) return;
+
+    left.currentTime = startMarkers.left;
+    right.currentTime = startMarkers.right;
+  };
+
+  const playBoth = async () => {
+    const left = leftVideoRef.current;
+    const right = rightVideoRef.current;
+
+    if (!left || !right) return;
+
+    try {
+      isSyncingRef.current = true;
+      await Promise.allSettled([left.play(), right.play()]);
+    } finally {
+      isSyncingRef.current = false;
+    }
+  };
+
+  const pauseBoth = () => {
+    const left = leftVideoRef.current;
+    const right = rightVideoRef.current;
+
+    if (!left || !right) return;
+
+    isSyncingRef.current = true;
+    left.pause();
+    right.pause();
+    isSyncingRef.current = false;
+  };
+
+  const resetToMarkers = () => {
+    pauseBoth();
+    applyStartMarkers();
+  };
+
+  const playFromMarkers = async () => {
+    resetToMarkers();
+    await playBoth();
+  };
+
+  const handleVideoPlay = async (source: "left" | "right") => {
+    if (isSyncingRef.current) return;
+
+    const otherVideo =
+      source === "left" ? rightVideoRef.current : leftVideoRef.current;
+
+    if (!otherVideo) return;
+
+    try {
+      isSyncingRef.current = true;
+      if (otherVideo.paused) {
+        await otherVideo.play();
+      }
+    } finally {
+      isSyncingRef.current = false;
+    }
+  };
+
+  const handleVideoPause = (source: "left" | "right") => {
+    if (isSyncingRef.current) return;
+
+    const otherVideo =
+      source === "left" ? rightVideoRef.current : leftVideoRef.current;
+
+    if (!otherVideo) return;
+
+    isSyncingRef.current = true;
+    otherVideo.pause();
+    isSyncingRef.current = false;
+  };
+
+  const setMarkerHere = (side: "left" | "right") => {
+    const video = side === "left" ? leftVideoRef.current : rightVideoRef.current;
+    if (!video) return;
+
+    setStartMarkers((prev) => ({
+      ...prev,
+      [side]: video.currentTime,
+    }));
+  };
+
+  const clearMarker = (side: "left" | "right") => {
+    setStartMarkers((prev) => ({
+      ...prev,
+      [side]: 0,
+    }));
+  };
+
+  const setBothMarkersHere = () => {
+    const left = leftVideoRef.current;
+    const right = rightVideoRef.current;
+    if (!left || !right) return;
+
+    setStartMarkers({
+      left: left.currentTime,
+      right: right.currentTime,
+    });
+  };
+
   if (videos.length !== 2) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 text-center">
-        <p className="text-gray-700 mb-4">Select two videos to compare.</p>
-        <Link to="/videos">
-          <Button className="bg-purple-600 hover:bg-purple-700">Go to Videos</Button>
-        </Link>
+      <div className="min-h-screen bg-gray-50 p-6 text-center flex items-center justify-center">
+        <div>
+          <p className="text-gray-700 mb-4">Select two videos to compare.</p>
+          <Link to="/videos">
+            <Button className="bg-purple-600 hover:bg-purple-700">
+              Go to Videos
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const leftVideo = videos[0];
+  const rightVideo = videos[1];
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="bg-white border-b sticky top-0 z-10">
-          <div className="flex items-center gap-3 p-4">
+      <div className="w-full max-w-none mx-auto">
+        <div className="bg-white border-b sticky top-0 z-20">
+          <div className="flex items-center gap-2 px-2 py-1.5">
             <Link to="/videos">
-              <Button variant="ghost" size="sm" className="h-10 w-10 p-0">
-                <ArrowLeft size={20} />
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                <ArrowLeft size={16} />
               </Button>
             </Link>
-            <div className="flex-1">
-              <h1 className="text-xl">Compare</h1>
-              <p className="text-xs text-gray-500">Side-by-side analysis</p>
+
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-semibold text-gray-900 leading-none">
+                Compare
+              </h1>
+              <p className="text-[10px] text-gray-500 leading-none mt-0.5">
+                Side-by-side performance analysis
+              </p>
             </div>
           </div>
         </div>
 
-        {/* 2-column panel */}
-        <div className="grid grid-cols-2 gap-3 p-4">
-          {videos.map((video) => {
-            const videoComments = commentsByVideoId[video.id] || [];
+        {!isLandscape && (
+          <div className="p-2">
+            <Card className="border-purple-200 bg-purple-50">
+              <CardContent className="p-3 text-center">
+                <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-700">
+                  <RotateCw size={16} />
+                </div>
+
+                <h2 className="text-xs font-semibold text-gray-900 mb-1">
+                  Rotate your phone for compare mode
+                </h2>
+
+                <p className="text-xs text-gray-600 mb-2">
+                  Compare works best in landscape so both videos stay visible
+                  together.
+                </p>
+
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-500">
+                  <Smartphone size={12} />
+                  Turn your phone sideways
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 p-2">
+          {[leftVideo, rightVideo].map((video, index) => {
+            const side = index === 0 ? "left" : "right";
+            const marker = startMarkers[side];
+            const resultText = getResultFromTitle(video.title);
+            const mainTitle = getMainTitle(video.title);
 
             return (
-              <div key={video.id} className="space-y-3">
-                {/* Video */}
-                <Card className="overflow-hidden">
+              <div key={video.id} className="flex flex-col gap-1.5">
+                <Card className="overflow-hidden border shadow-sm">
                   <CardContent className="p-0">
                     <div className="bg-black">
                       <video
+                        ref={(el) => {
+                          if (side === "left") leftVideoRef.current = el;
+                          if (side === "right") rightVideoRef.current = el;
+                        }}
                         src={video.videoUrl}
                         controls
-                        className="w-full aspect-video object-cover"
+                        className={`w-full object-cover ${
+                          isLandscape ? "aspect-video" : "aspect-[9/14]"
+                        }`}
                         controlsList="nodownload"
+                        onPlay={() => handleVideoPlay(side)}
+                        onPause={() => handleVideoPause(side)}
                       />
                     </div>
 
-                    <div className="p-3">
-                      <p className="text-sm font-semibold leading-snug line-clamp-2">
-                        {video.title}
-                      </p>
-                      <p className="text-xs text-gray-600 leading-snug line-clamp-2 mt-0.5">
-                        {video.description || "—"}
-                      </p>
-                      <div className="flex items-center text-[11px] text-gray-500 mt-2">
-                        <Calendar size={12} className="mr-1" />
-                        {new Date(video.date).toLocaleDateString()}
+                    <div className="px-1.5 pt-1.5 pb-0">
+                      <div className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-0.5 items-start">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold text-gray-900 truncate leading-tight">
+                            {mainTitle}
+                          </p>
+                        </div>
+                        <div className="text-[10px] text-gray-500 leading-tight whitespace-nowrap">
+                          {formatShortDate(video.date)}
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-gray-700 truncate leading-tight">
+                            {resultText || "—"}
+                          </p>
+                        </div>
+                        <div className="text-[10px] text-gray-600 leading-tight whitespace-nowrap">
+                          Video {index + 1} · {formatTime(marker)}
+                        </div>
                       </div>
 
-                      <Link to={`/videos/${video.id}`}>
+                      <div className="grid grid-cols-3 gap-1 mt-1.5 items-stretch">
                         <Button
-                          variant="outline"
                           size="sm"
-                          className="w-full mt-3"
+                          onClick={() => setMarkerHere(side)}
+                          variant="outline"
+                          className="h-6 text-[9px] px-1.5"
                         >
-                          Open Details
+                          <Bookmark size={10} className="mr-1" />
+                          Mark
                         </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                {/* Comments (read-only on compare screen) */}
-                <Card>
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-gray-700">
-                        Comments ({videoComments.length})
-                      </p>
-                    </div>
+                        <Button
+                          size="sm"
+                          onClick={() => clearMarker(side)}
+                          variant="outline"
+                          className="h-6 text-[9px] px-1.5"
+                        >
+                          <X size={10} className="mr-1" />
+                          Clear
+                        </Button>
 
-                    {videoComments.length === 0 ? (
-                      <p className="text-xs text-gray-500">
-                        No comments for this video yet.
-                      </p>
-                    ) : (
-                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                        {videoComments.map((c) => (
-                          <div
-                            key={c.id}
-                            className={`rounded-lg p-2 text-xs border ${
-                              c.role === "coach"
-                                ? "bg-blue-50 border-blue-100"
-                                : "bg-purple-50 border-purple-100"
-                            }`}
+                        <Link to={`/videos/${video.id}`} className="block">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 w-full text-[9px] px-1.5"
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <div
-                                className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                                  c.role === "coach"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : "bg-purple-100 text-purple-700"
-                                }`}
-                              >
-                                <User size={14} />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium truncate">
-                                    {c.author}
-                                  </span>
-                                  <span
-                                    className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                      c.role === "coach"
-                                        ? "bg-blue-100 text-blue-700"
-                                        : "bg-purple-100 text-purple-700"
-                                    }`}
-                                  >
-                                    {c.role}
-                                  </span>
-                                </div>
-                                <div className="text-[10px] text-gray-500">
-                                  {new Date(c.timestamp).toLocaleString()}
-                                </div>
-                              </div>
-                            </div>
-
-                            <p className="text-gray-800 whitespace-pre-wrap break-words">
-                              {c.text}
-                            </p>
-                          </div>
-                        ))}
+                            Details
+                          </Button>
+                        </Link>
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -208,8 +388,145 @@ export function Compare() {
           })}
         </div>
 
-        {/* Bottom spacing for nav */}
-        <div className="h-24" />
+        <div className="px-2 pb-2">
+          <div className="grid grid-cols-5 gap-1">
+            <Button
+              size="sm"
+              onClick={playBoth}
+              className="h-6 text-[9px] px-1.5 bg-purple-600 hover:bg-purple-700"
+            >
+              <Play size={10} className="mr-1" />
+              Play
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={pauseBoth}
+              variant="outline"
+              className="h-6 text-[9px] px-1.5"
+            >
+              <Pause size={10} className="mr-1" />
+              Pause
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={resetToMarkers}
+              variant="outline"
+              className="h-6 text-[9px] px-1.5"
+            >
+              <RotateCcw size={10} className="mr-1" />
+              Reset
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={playFromMarkers}
+              variant="outline"
+              className="h-6 text-[9px] px-1.5"
+            >
+              <Bookmark size={10} className="mr-1" />
+              From
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={setBothMarkersHere}
+              variant="outline"
+              className="h-6 text-[9px] px-1.5"
+            >
+              <Bookmark size={10} className="mr-1" />
+              Both
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 px-2 pb-2">
+          {[leftVideo, rightVideo].map((video) => {
+            const videoComments = commentsByVideoId[video.id] || [];
+
+            return (
+              <Card
+                key={video.id}
+                className={`border shadow-sm ${
+                  isLandscape ? "min-h-[180px]" : ""
+                }`}
+              >
+                <CardContent
+                  className={isLandscape ? "p-2 h-full flex flex-col" : "p-2"}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="font-semibold text-gray-700 text-[10px]">
+                      Comments ({videoComments.length})
+                    </p>
+                  </div>
+
+                  {videoComments.length === 0 ? (
+                    <p className="text-gray-500 text-[10px]">
+                      No comments for this video yet.
+                    </p>
+                  ) : (
+                    <div
+                      className={`space-y-1.5 pr-1 overflow-y-auto ${
+                        isLandscape ? "flex-1 min-h-0 max-h-none" : "max-h-44"
+                      }`}
+                    >
+                      {videoComments.map((c) => (
+                        <div
+                          key={c.id}
+                          className={`rounded-lg border p-1.5 ${
+                            c.role === "coach"
+                              ? "bg-blue-50 border-blue-100"
+                              : "bg-purple-50 border-purple-100"
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <div
+                              className={`w-4.5 h-4.5 rounded-full flex items-center justify-center shrink-0 ${
+                                c.role === "coach"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-purple-100 text-purple-700"
+                              }`}
+                            >
+                              <User size={10} />
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-medium truncate text-[10px]">
+                                  {c.author}
+                                </span>
+                                <span
+                                  className={`px-1 py-0.5 rounded text-[8px] ${
+                                    c.role === "coach"
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-purple-100 text-purple-700"
+                                  }`}
+                                >
+                                  {c.role}
+                                </span>
+                              </div>
+
+                              <div className="text-gray-500 text-[8px]">
+                                {new Date(c.timestamp).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="text-gray-800 whitespace-pre-wrap break-words text-[10px] leading-tight">
+                            {c.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        <div className={isLandscape ? "h-1" : "h-4"} />
       </div>
     </div>
   );

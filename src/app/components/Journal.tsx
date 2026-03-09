@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Calendar, Trash2, BookOpen } from "lucide-react";
+import { Plus, Calendar, Trash2, BookOpen, Pencil, MoreVertical } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
@@ -10,10 +10,24 @@ import {
   DrawerFooter,
   DrawerDescription,
 } from "./ui/drawer";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
 interface JournalEntry {
   id: string;
@@ -32,6 +46,9 @@ interface JournalEntry {
 export function Journal() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -73,19 +90,35 @@ export function Journal() {
   };
 
   const openNewEntry = () => {
+    setEditingEntryId(null);
     resetNewEntry();
     setIsDialogOpen(true);
   };
 
   const cancelNewEntry = () => {
     resetNewEntry();
+    setEditingEntryId(null);
     setIsDialogOpen(false);
   };
 
-  const handleAddEntry = () => {
-    if (!newEntry.title || !newEntry.result) return;
+  const openEditEntry = (entry: JournalEntry) => {
+    setEditingEntryId(entry.id);
+    setNewEntry({
+      title: entry.title,
+      result: entry.result,
+      mood: entry.mood || "",
+      wentWell: entry.wentWell,
+      wentPoorly: entry.wentPoorly,
+      conditions: entry.conditions,
+      improvement: entry.improvement,
+      notes: entry.notes || "",
+    });
+    setStep(1);
+    setIsDialogOpen(true);
+  };
 
-    const compiled = [
+  const buildContent = () =>
+    [
       `Result: ${newEntry.result}`,
       newEntry.mood ? `Mood: ${newEntry.mood}` : null,
       "",
@@ -107,21 +140,51 @@ export function Journal() {
       .filter(Boolean)
       .join("\n");
 
-    const entry: JournalEntry = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      title: newEntry.title,
-      result: newEntry.result,
-      mood: newEntry.mood || undefined,
-      wentWell: newEntry.wentWell,
-      wentPoorly: newEntry.wentPoorly,
-      conditions: newEntry.conditions,
-      improvement: newEntry.improvement,
-      notes: newEntry.notes || undefined,
-      content: compiled,
-    };
+  const handleAddEntry = () => {
+    if (!newEntry.title || !newEntry.result) return;
 
-    saveEntries([entry, ...entries]);
+    const compiled = buildContent();
+
+    if (editingEntryId) {
+      const existing = entries.find((e) => e.id === editingEntryId);
+      if (!existing) {
+        cancelNewEntry();
+        return;
+      }
+      const updated: JournalEntry = {
+        ...existing,
+        title: newEntry.title,
+        result: newEntry.result,
+        mood: newEntry.mood || undefined,
+        wentWell: newEntry.wentWell,
+        wentPoorly: newEntry.wentPoorly,
+        conditions: newEntry.conditions,
+        improvement: newEntry.improvement,
+        notes: newEntry.notes || undefined,
+        content: compiled,
+      };
+      saveEntries(
+        entries.map((e) => (e.id === editingEntryId ? updated : e))
+      );
+      if (expandedEntry === editingEntryId) {
+        setExpandedEntry(null);
+      }
+    } else {
+      const entry: JournalEntry = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        title: newEntry.title,
+        result: newEntry.result,
+        mood: newEntry.mood || undefined,
+        wentWell: newEntry.wentWell,
+        wentPoorly: newEntry.wentPoorly,
+        conditions: newEntry.conditions,
+        improvement: newEntry.improvement,
+        notes: newEntry.notes || undefined,
+        content: compiled,
+      };
+      saveEntries([entry, ...entries]);
+    }
     cancelNewEntry();
   };
 
@@ -130,6 +193,7 @@ export function Journal() {
     if (expandedEntry === id) {
       setExpandedEntry(null);
     }
+    setDeleteConfirmId(null);
   };
 
   const getPreview = (entry: JournalEntry) => {
@@ -207,18 +271,56 @@ export function Journal() {
                           <BookOpen size={20} strokeWidth={1.6} />
                         </div>
 
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="text-base font-semibold text-foreground">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2 mb-2">
+                            <h3 className="text-base font-semibold text-foreground truncate min-w-0">
                               {entry.title}
                             </h3>
-                            <ConfirmDeleteButton
-                                onConfirm={() => handleDelete(entry.id)}
-                                title="Delete journal entry?"
-                                description="This journal entry will be permanently removed and cannot be recovered."
-                                className="text-destructive hover:bg-destructive/10 -mt-1 rounded-lg h-8 w-8 p-0"
-                                iconOnly
-                              />
+                            <Popover
+                              open={openMenuId === entry.id}
+                              onOpenChange={(open) => setOpenMenuId(open ? entry.id : null)}
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted -mt-1"
+                                  aria-label="Entry options"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setOpenMenuId((id) => (id === entry.id ? null : entry.id));
+                                  }}
+                                >
+                                  <MoreVertical size={18} strokeWidth={1.6} />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-1" align="end" sideOffset={4}>
+                                <button
+                                  type="button"
+                                  className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    openEditEntry(entry);
+                                  }}
+                                >
+                                  <Pencil size={16} strokeWidth={1.6} />
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none hover:bg-destructive/10"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    setDeleteConfirmId(entry.id);
+                                  }}
+                                >
+                                  <Trash2 size={16} strokeWidth={1.6} />
+                                  Delete
+                                </button>
+                              </PopoverContent>
+                            </Popover>
                           </div>
 
                           <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -265,18 +367,56 @@ export function Journal() {
                             <BookOpen size={20} strokeWidth={1.6} />
                           </div>
 
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className="text-base font-semibold text-foreground">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-2 mb-2">
+                              <h3 className="text-base font-semibold text-foreground truncate min-w-0">
                                 {entry.title}
                               </h3>
-                              <ConfirmDeleteButton
-                                onConfirm={() => handleDelete(entry.id)}
-                                title="Delete journal entry?"
-                                description="This journal entry will be permanently removed and cannot be recovered."
-                                className="text-destructive hover:bg-destructive/10 -mt-1 rounded-lg h-8 w-8 p-0"
-                                iconOnly
-                              />
+                              <Popover
+                                open={openMenuId === entry.id}
+                                onOpenChange={(open) => setOpenMenuId(open ? entry.id : null)}
+                              >
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted -mt-1"
+                                    aria-label="Entry options"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setOpenMenuId((id) => (id === entry.id ? null : entry.id));
+                                    }}
+                                  >
+                                    <MoreVertical size={18} strokeWidth={1.6} />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 p-1" align="end" sideOffset={4}>
+                                  <button
+                                    type="button"
+                                    className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      openEditEntry(entry);
+                                    }}
+                                  >
+                                    <Pencil size={16} strokeWidth={1.6} />
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none hover:bg-destructive/10"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      setDeleteConfirmId(entry.id);
+                                    }}
+                                  >
+                                    <Trash2 size={16} strokeWidth={1.6} />
+                                    Delete
+                                  </button>
+                                </PopoverContent>
+                              </Popover>
                             </div>
 
                             <div className="flex items-center gap-2 flex-wrap mb-3">
@@ -377,11 +517,19 @@ export function Journal() {
           <DrawerContent className="max-w-md mx-auto flex flex-col">
             <DrawerHeader>
               <DrawerTitle>
-                {step === 1 ? "New Entry" : "Reflection"}
+                {editingEntryId
+                  ? step === 1
+                    ? "Edit Entry"
+                    : "Edit Reflection"
+                  : step === 1
+                    ? "New Entry"
+                    : "Reflection"}
               </DrawerTitle>
               <DrawerDescription>
                 {step === 1
-                  ? "Enter the details of your event."
+                  ? editingEntryId
+                    ? "Update the details of your event."
+                    : "Enter the details of your event."
                   : "Reflect on your performance."}
               </DrawerDescription>
 
@@ -558,13 +706,33 @@ export function Journal() {
                     onClick={handleAddEntry}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
-                    Save Entry
+                    {editingEntryId ? "Save changes" : "Save Entry"}
                   </Button>
                 </>
               )}
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
+
+        <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete journal entry?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This journal entry will be permanently removed and cannot be recovered.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

@@ -481,51 +481,63 @@ export function PersonalBests() {
                   className="overflow-hidden border border-border rounded-xl shadow-sm hover:shadow-md hover:border-orange-200 transition-all"
                 >
                   <CardContent className="p-2.5">
-                    <div className="flex items-start gap-2.5">
-                      <div className="bg-orange-100 text-orange-600 p-2 rounded-lg flex-shrink-0 self-start">
-                        <Trophy size={16} strokeWidth={1.7} />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-[13px] font-semibold text-foreground truncate leading-tight">
-                          {record.event}
-                        </h3>
-
-                        <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
-                          <span className="text-[15px] font-semibold text-orange-600 tabular-nums leading-none">
-                            {record.result}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {record.unit}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {new Date(record.date).toLocaleDateString()}
-                          </span>
+                    <div className="flex flex-col gap-0">
+                      <div className="flex items-start gap-2.5">
+                        <div className="bg-orange-100 text-orange-600 p-2 rounded-lg flex-shrink-0 self-start">
+                          <Trophy size={16} strokeWidth={1.7} />
                         </div>
 
-                        {(record.notes || linkedVideo) && (
-                          <div className="mt-0.5 space-y-0.5">
-                            {record.notes && (
-                              <p className="text-[11px] text-muted-foreground truncate leading-tight">
-                                {record.notes}
-                              </p>
-                            )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-[13px] font-semibold text-foreground truncate leading-tight">
+                            {record.event}
+                          </h3>
 
-                            {linkedVideo && (
-                              <Link
-                                to={`/videos/${linkedVideo.id}`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <p className="text-[11px] text-blue-600 truncate hover:underline leading-tight">
-                                  Video: {linkedVideo.title}
-                                </p>
-                              </Link>
-                            )}
+                          <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+                            <span className="text-[15px] font-semibold text-orange-600 tabular-nums leading-none">
+                              {record.result}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {record.unit}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(record.date).toLocaleDateString()}
+                            </span>
                           </div>
-                        )}
+
+                          {(record.notes || linkedVideo) && (
+                            <div className="mt-0.5 space-y-0.5">
+                              {record.notes && (
+                                <p className="text-[11px] text-muted-foreground truncate leading-tight">
+                                  {record.notes}
+                                </p>
+                              )}
+
+                              {linkedVideo && (
+                                <Link
+                                  to={`/videos/${linkedVideo.id}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <p className="text-[11px] text-blue-600 truncate hover:underline leading-tight">
+                                    Video: {linkedVideo.title}
+                                  </p>
+                                </Link>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-shrink-0 self-start">
+                          <ConfirmDeleteButton
+                            onConfirm={() => handleDelete(record.id)}
+                            title="Delete personal best?"
+                            description="This personal best and its history will be permanently removed."
+                            className="h-6 rounded-md text-destructive hover:bg-destructive/10 p-0"
+                            iconOnly
+                          />
+                        </div>
                       </div>
 
-                      <div className="flex flex-col gap-1 flex-shrink-0 w-[58px]">
+                      <div className="flex items-center gap-1 mt-2 ml-[34px]">
                         <Button
                           variant="outline"
                           size="sm"
@@ -559,14 +571,6 @@ export function PersonalBests() {
                           />
                           View
                         </Button>
-
-                        <ConfirmDeleteButton
-                          onConfirm={() => handleDelete(record.id)}
-                          title="Delete personal best?"
-                          description="This personal best and its history will be permanently removed."
-                          className="h-6 rounded-md text-destructive hover:bg-destructive/10 p-0"
-                          iconOnly
-                        />
                       </div>
                     </div>
                   </CardContent>

@@ -354,7 +354,7 @@ export function VideoDetail() {
             </div>
           )}
           {/* Add Comment */}
-          <Card className="mb-3 border border-border rounded-xl shadow-sm">
+          <Card className="mt-6 mb-8 border border-border rounded-xl shadow-sm">
             <CardContent className="p-3">
               <div className="space-y-3">
                 <div className="text-xs text-muted-foreground">

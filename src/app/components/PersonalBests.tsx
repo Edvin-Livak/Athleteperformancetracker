@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Plus, Trophy, Trash2, Pencil, TrendingUp } from "lucide-react";
+import { Plus, Trophy, Trash2, Pencil, TrendingUp, MoreVertical } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import {
@@ -20,7 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 
 interface PersonalBestHistoryEntry {
   id: string;
@@ -162,6 +177,7 @@ export function PersonalBests() {
     null,
   );
   const [isProgressOpen, setIsProgressOpen] = useState(false);
+  const [deleteBestId, setDeleteBestId] = useState<string | null>(null);
 
   const [newBest, setNewBest] = useState({
     event: "",
@@ -526,35 +542,37 @@ export function PersonalBests() {
                           )}
                         </div>
 
-                        <div className="flex-shrink-0 self-start">
-                          <ConfirmDeleteButton
-                            onConfirm={() => handleDelete(record.id)}
-                            title="Delete personal best?"
-                            description="This personal best and its history will be permanently removed."
-                            className="h-6 rounded-md text-destructive hover:bg-destructive/10 p-0"
-                            iconOnly
-                          />
+                        <div className="relative z-10 flex items-center flex-shrink-0 self-start">
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger
+                              type="button"
+                              className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent touch-manipulation"
+                              aria-label="Personal best options"
+                            >
+                              <MoreVertical size={18} />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="z-[100] min-w-[140px]">
+                              <DropdownMenuItem
+                                onClick={() => openEditDrawer(record)}
+                                className="gap-2 cursor-pointer"
+                              >
+                                <Pencil size={14} />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onClick={() => setDeleteBestId(record.id)}
+                                className="gap-2 cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1 mt-2 ml-[34px]">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditDrawer(record);
-                          }}
-                          className="h-6 rounded-md border-gray-200 px-1 text-[10px] text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                        >
-                          <Pencil
-                            size={10}
-                            className="mr-1"
-                            strokeWidth={1.8}
-                          />
-                          Log
-                        </Button>
-
                         <Button
                           variant="outline"
                           size="sm"
@@ -585,11 +603,11 @@ export function PersonalBests() {
           <DrawerContent className="max-w-md mx-auto flex flex-col">
             <DrawerHeader>
               <DrawerTitle>
-                {editingId ? "Log New Personal Best" : "Add Personal Best"}
+                {editingId ? "Edit Personal Best" : "Add Personal Best"}
               </DrawerTitle>
               <DrawerDescription>
                 {editingId
-                  ? "Log a new result for this event. It will be added to your progress history."
+                  ? "Update this personal best or add a new result to your progress history."
                   : "Enter your personal best details below."}
               </DrawerDescription>
             </DrawerHeader>
@@ -968,6 +986,31 @@ export function PersonalBests() {
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
+
+        <AlertDialog
+          open={deleteBestId !== null}
+          onOpenChange={(open) => !open && setDeleteBestId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete personal best?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This personal best and its history will be permanently removed.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() =>
+                  deleteBestId && (handleDelete(deleteBestId), setDeleteBestId(null))
+                }
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

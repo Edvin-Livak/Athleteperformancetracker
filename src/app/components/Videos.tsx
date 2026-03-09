@@ -322,7 +322,7 @@ export function Videos() {
 
         {/* Add Video - bottom drawer */}
         <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DrawerContent className="max-w-md mx-auto">
+          <DrawerContent className="max-w-md mx-auto flex flex-col">
             <DrawerHeader>
               <DrawerTitle>Add New Video</DrawerTitle>
               <DrawerDescription>
@@ -330,7 +330,7 @@ export function Videos() {
               </DrawerDescription>
             </DrawerHeader>
 
-            <div className="space-y-4 px-4 pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-4 px-4 pb-4 overscroll-contain">
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input

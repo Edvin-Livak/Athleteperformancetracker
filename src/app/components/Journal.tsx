@@ -374,7 +374,7 @@ export function Journal() {
 
         {/* Add Entry - bottom drawer */}
         <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DrawerContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
+          <DrawerContent className="max-w-md mx-auto flex flex-col">
             <DrawerHeader>
               <DrawerTitle>
                 {step === 1 ? "New Entry" : "Reflection"}
@@ -399,7 +399,7 @@ export function Journal() {
               </div>
             </DrawerHeader>
 
-            <div className="flex-1 overflow-y-auto space-y-4 px-4 pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-4 px-4 pb-4 overscroll-contain">
               {step === 1 ? (
                 <>
                   <div className="space-y-2">

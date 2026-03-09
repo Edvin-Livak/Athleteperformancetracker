@@ -578,7 +578,7 @@ export function PersonalBests() {
 
         {/* Add / Log PB Drawer */}
         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <DrawerContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
+          <DrawerContent className="max-w-md mx-auto flex flex-col">
             <DrawerHeader>
               <DrawerTitle>
                 {editingId ? "Log New Personal Best" : "Add Personal Best"}
@@ -590,7 +590,7 @@ export function PersonalBests() {
               </DrawerDescription>
             </DrawerHeader>
 
-            <div className="flex-1 overflow-y-auto space-y-4 px-4 pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-4 px-4 pb-4 overscroll-contain">
               {editingId ? (
                 <div className="pb-2 border-b border-gray-200">
                   <h3 className="text-xl font-semibold text-orange-600 tracking-tight">
@@ -730,7 +730,7 @@ export function PersonalBests() {
 
         {/* Progress Drawer */}
         <Drawer open={isProgressOpen} onOpenChange={setIsProgressOpen}>
-          <DrawerContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
+          <DrawerContent className="max-w-md mx-auto flex flex-col">
             <DrawerHeader>
               <DrawerTitle>{selectedRecord?.event || "Progress"}</DrawerTitle>
               <DrawerDescription>
@@ -738,7 +738,7 @@ export function PersonalBests() {
               </DrawerDescription>
             </DrawerHeader>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-4 overscroll-contain">
               {selectedEntries.length === 0 ? (
                 <div className="py-6 text-sm text-gray-500">
                   No data available for this event yet.

@@ -5,7 +5,8 @@ import {
   CheckCircle2,
   Circle,
   Trash2,
-  Calendar,
+  MoreVertical,
+  Pencil,
 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
@@ -27,7 +28,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 
 interface Goal {
   id: string;
@@ -42,6 +58,8 @@ interface Goal {
 export function Goals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
   const [newGoal, setNewGoal] = useState({
     title: "",
@@ -78,25 +96,54 @@ export function Goals() {
 
   const cancelNewGoal = () => {
     resetNewGoal();
+    setEditingGoalId(null);
     setIsDrawerOpen(false);
   };
 
-  const handleAddGoal = () => {
+  const openEditGoal = (goal: Goal) => {
+    setNewGoal({
+      title: goal.title,
+      description: goal.description,
+      targetDate: goal.targetDate,
+      category: goal.category,
+    });
+    setEditingGoalId(goal.id);
+    setIsDrawerOpen(true);
+  };
+
+  const handleSaveGoal = () => {
     if (!newGoal.title || !newGoal.targetDate) return;
 
-    const goal: Goal = {
-      id: Date.now().toString(),
-      title: newGoal.title,
-      description: newGoal.description,
-      targetDate: newGoal.targetDate,
-      category: newGoal.category,
-      completed: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    saveGoals([goal, ...goals]);
+    if (editingGoalId) {
+      saveGoals(
+        goals.map((g) =>
+          g.id === editingGoalId
+            ? {
+                ...g,
+                title: newGoal.title,
+                description: newGoal.description,
+                targetDate: newGoal.targetDate,
+                category: newGoal.category,
+              }
+            : g,
+        ),
+      );
+    } else {
+      const goal: Goal = {
+        id: Date.now().toString(),
+        title: newGoal.title,
+        description: newGoal.description,
+        targetDate: newGoal.targetDate,
+        category: newGoal.category,
+        completed: false,
+        createdAt: new Date().toISOString(),
+      };
+      saveGoals([goal, ...goals]);
+    }
     cancelNewGoal();
   };
+
+  const handleAddGoal = handleSaveGoal;
 
   const toggleComplete = (id: string) => {
     saveGoals(
@@ -108,6 +155,7 @@ export function Goals() {
 
   const handleDelete = (id: string) => {
     saveGoals(goals.filter((g) => g.id !== id));
+    setDeleteGoalId(null);
   };
 
   const filteredGoals = goals.filter((goal) => {
@@ -290,32 +338,33 @@ export function Goals() {
                         )}
                       </div>
 
-                      <div className="flex flex-col gap-1 flex-shrink-0 w-[58px]">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleComplete(goal.id)}
-                          className={`h-6 rounded-md px-1 text-[10px] ${
-                            goal.completed
-                              ? "border-gray-200 text-gray-700 hover:bg-gray-50"
-                              : "border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"
-                          }`}
-                        >
-                          {goal.completed ? "Undo" : "Done"}
-                        </Button>
-
-                        <div className="h-6 flex items-center justify-center text-[10px] text-muted-foreground rounded-md border border-border">
-                          <Calendar size={10} className="mr-1" />
-                          Date
-                        </div>
-
-                        <ConfirmDeleteButton
-                          onConfirm={() => handleDelete(goal.id)}
-                          title="Delete goal?"
-                          description="This goal will be permanently removed."
-                          className="h-6 rounded-md text-destructive hover:bg-destructive/10 p-0"
-                          iconOnly
-                        />
+                      <div className="relative z-10 flex items-center flex-shrink-0">
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger
+                            type="button"
+                            className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent touch-manipulation"
+                            aria-label="Goal options"
+                          >
+                            <MoreVertical size={18} />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="z-[100] min-w-[140px]">
+                            <DropdownMenuItem
+                              onClick={() => openEditGoal(goal)}
+                              className="gap-2 cursor-pointer"
+                            >
+                              <Pencil size={14} />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => setDeleteGoalId(goal.id)}
+                              className="gap-2 cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </CardContent>
@@ -326,15 +375,19 @@ export function Goals() {
         )}
 
         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <DrawerContent className="max-w-md mx-auto max-h-[90vh] flex flex-col">
+          <DrawerContent className="max-w-md mx-auto flex flex-col">
             <DrawerHeader>
-              <DrawerTitle>Set New Goal</DrawerTitle>
+              <DrawerTitle>
+                {editingGoalId ? "Edit Goal" : "Set New Goal"}
+              </DrawerTitle>
               <DrawerDescription>
-                Add a new goal to help guide your training.
+                {editingGoalId
+                  ? "Update your goal details."
+                  : "Add a new goal to help guide your training."}
               </DrawerDescription>
             </DrawerHeader>
 
-            <div className="flex-1 overflow-y-auto space-y-4 px-4 pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-4 px-4 pb-4 overscroll-contain">
               <div className="space-y-2">
                 <Label htmlFor="goal-title">Goal</Label>
                 <Input
@@ -399,15 +452,38 @@ export function Goals() {
                 Cancel
               </Button>
               <Button
-                onClick={handleAddGoal}
+                onClick={handleSaveGoal}
                 disabled={!newGoal.title || !newGoal.targetDate}
                 className="bg-green-600 hover:bg-green-700"
               >
-                Set Goal
+                {editingGoalId ? "Save" : "Set Goal"}
               </Button>
             </DrawerFooter>
           </DrawerContent>
         </Drawer>
+
+        <AlertDialog
+          open={deleteGoalId !== null}
+          onOpenChange={(open) => !open && setDeleteGoalId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete goal?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This goal will be permanently removed.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteGoalId && handleDelete(deleteGoalId)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ export interface PersonalBest {
   notes?: string;
 }
 
+
 export const dummyPersonalBests: PersonalBest[] = [
   { id: "pb1", event: "100m Sprint", result: "11.82", unit: "seconds", date: "2024-07-14T14:00:00.000Z", notes: "State qualifier, slight tailwind" },
   { id: "pb2", event: "200m Sprint", result: "24.10", unit: "seconds", date: "2024-06-22T10:30:00.000Z", notes: "District meet" },
@@ -37,6 +38,7 @@ export interface JournalEntry {
   wentPoorly: string;
   conditions: string;
   improvement: string;
+  notes?: string;
   mood?: string;
   content: string;
 }
@@ -57,6 +59,9 @@ function buildJournalContent(entry: Omit<JournalEntry, "content">): string {
     "",
     "What needs improvement?",
     entry.improvement || "—",
+    "",
+    "Notes:",
+    entry.notes || "—",
   ]
     .filter(Boolean)
     .join("\n");

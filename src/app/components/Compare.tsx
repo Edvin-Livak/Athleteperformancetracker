@@ -419,25 +419,7 @@ export function Compare() {
               Reset
             </Button>
 
-            <Button
-              size="sm"
-              onClick={playFromMarkers}
-              variant="outline"
-              className="h-6 text-[9px] px-1.5"
-            >
-              <Bookmark size={10} className="mr-1" />
-              From
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={setBothMarkersHere}
-              variant="outline"
-              className="h-6 text-[9px] px-1.5"
-            >
-              <Bookmark size={10} className="mr-1" />
-              Both
-            </Button>
+            
           </div>
         </div>
 

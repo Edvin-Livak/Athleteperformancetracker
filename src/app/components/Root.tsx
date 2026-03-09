@@ -26,7 +26,7 @@ export function Root() {
 
       {!hideNav && (
         <nav
-          className="fixed left-4 right-4 max-w-md mx-auto bg-[#1A1A1A] rounded-full shadow-xl border border-[#2A2A2A]"
+          className="fixed left-4 right-4 max-w-md mx-auto bg-[#1A1A1A] rounded-full shadow-xl border border-[#2A2A2A] z-[1000]"
           style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}
         >
           <div className="flex justify-between items-center p-3">

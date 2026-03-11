@@ -75,6 +75,18 @@ export function Goals() {
     }
   }, []);
 
+  useEffect(() => {
+  if (isDrawerOpen) {
+    document.body.classList.add("hide-bottom-nav");
+  } else {
+    document.body.classList.remove("hide-bottom-nav");
+  }
+
+  return () => {
+    document.body.classList.remove("hide-bottom-nav");
+  };
+}, [isDrawerOpen]);
+
   const saveGoals = (updatedGoals: Goal[]) => {
     setGoals(updatedGoals);
     localStorage.setItem("athleteGoals", JSON.stringify(updatedGoals));

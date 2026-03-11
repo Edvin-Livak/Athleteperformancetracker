@@ -203,6 +203,18 @@ export function PersonalBests() {
     }
   }, []);
 
+  useEffect(() => {
+  if (isDrawerOpen) {
+    document.body.classList.add("hide-bottom-nav");
+  } else {
+    document.body.classList.remove("hide-bottom-nav");
+  }
+
+  return () => {
+    document.body.classList.remove("hide-bottom-nav");
+  };
+}, [isDrawerOpen]);
+
   const saveBests = (updatedBests: PersonalBest[]) => {
     setBests(updatedBests);
     localStorage.setItem("athleteBests", JSON.stringify(updatedBests));

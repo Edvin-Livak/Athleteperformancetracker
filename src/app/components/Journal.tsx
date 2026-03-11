@@ -70,6 +70,18 @@ export function Journal() {
     }
   }, []);
 
+  useEffect(() => {
+  if (isDialogOpen) {
+    document.body.classList.add("hide-bottom-nav");
+  } else {
+    document.body.classList.remove("hide-bottom-nav");
+  }
+
+  return () => {
+    document.body.classList.remove("hide-bottom-nav");
+  };
+}, [isDialogOpen]);
+
   const saveEntries = (updatedEntries: JournalEntry[]) => {
     setEntries(updatedEntries);
     localStorage.setItem("athleteJournal", JSON.stringify(updatedEntries));

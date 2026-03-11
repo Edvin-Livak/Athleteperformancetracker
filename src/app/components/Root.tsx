@@ -1,15 +1,34 @@
 import { Outlet, useLocation, Link } from "react-router";
 import { Home, Video, BookOpen, Trophy, Target } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export function Root() {
   const location = useLocation();
+  const [hideForDrawer, setHideForDrawer] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      setHideForDrawer(document.body.classList.contains("hide-bottom-nav"));
+    };
+
+    update();
+
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
 
-  const hideNav = location.pathname.startsWith("/compare");
+  const hideNav =
+    location.pathname.startsWith("/compare") || hideForDrawer;
 
   return (
     <div className="flex flex-col h-screen bg-background">
